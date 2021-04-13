@@ -116,7 +116,7 @@ void *task (void *dummyPt)
         for (const auto& m: msg_json){
             vector<string> all_keys;
            
-            for (const auto& key: msg_json["keys"]){
+            for (const auto& key: m["keys"]){
                 all_keys.push_back(key);
                 State state = qm.get(key);
                 for (string k: state.keys){
@@ -138,13 +138,14 @@ void *task (void *dummyPt)
                 qm.set(ks, amplitudes);
                 
             } else if (type == "GET"){
-                string key = m["args"][0];
+                string key = m["keys"][0];
                 State state = qm.get(key);
                 send_msg_with_length(connFd, state.serialization());
             } else if (type == "RUN"){
                 Circuit * circuit = new Circuit(m["args"]["circuit"]);
                 vector<string> keys = m["args"]["keys"];
-                map<string, int> res = qm.run_circuit(circuit, keys);
+                float meas_samp = m["args"]["meas_samp"];
+                map<string, int> res = qm.run_circuit(circuit, keys, meas_samp);
                 if (res.size() > 0){
                     json j_res = res;
                     send_msg_with_length(connFd, j_res.dump());

@@ -55,7 +55,7 @@ public:
             states[k] = s;
         }
     }
-    map<string, int> run_circuit(Circuit*, vector<string>);
+    map<string, int> run_circuit(Circuit*, vector<string>, float);
 };
 
 //class QuantumManagerKet : public QuantumManager{

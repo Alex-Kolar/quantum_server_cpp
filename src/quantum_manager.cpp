@@ -11,7 +11,7 @@
 #include <vector>
 using namespace std;
 
-map<string, int> QuantumManager::run_circuit(Circuit* circuit, vector<string> keys){
+map<string, int> QuantumManager::run_circuit(Circuit* circuit, vector<string> keys, float meas_samp){
     map<string, int> res;
     //todo
     return res;
