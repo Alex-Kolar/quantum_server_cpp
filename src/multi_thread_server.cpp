@@ -133,7 +133,7 @@ void *task (void *dummyPt)
             
             auto type = (std::string)m["type"];
             if (type == "SET"){
-                vector<string> ks = m["args"]["keys"];
+                vector<string> ks = m["keys"];
                 vector<double> amplitudes = m["args"]["amplitudes"];
                 qm.set(ks, amplitudes);
                 
