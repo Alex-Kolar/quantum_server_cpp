@@ -37,6 +37,10 @@ static int connFd;
 map<string, mutex> locks;
 QuantumManager qm;
 
+struct task_args{
+    int socket;
+};
+
 int start_server(const char *ip_chr, int portNo, int client_num, string formalism, string log_file)
 {
     int listenFd;
@@ -79,9 +83,10 @@ int start_server(const char *ip_chr, int portNo, int client_num, string formalis
     
     int noThread = 0;
 
+    cout << "Listening at " << ip_chr << ":" << portNo << endl;
+
     while (noThread < client_num)
     {
-        cout << "Listening at " << ip_chr << ":" << portNo << endl;
 
         //this is where client connects. svr will hang in this mode until client conn
         connFd = accept(listenFd, (struct sockaddr *)&clntAdd, &len);
@@ -91,8 +96,10 @@ int start_server(const char *ip_chr, int portNo, int client_num, string formalis
             cerr << "Cannot accept connection" << endl;
             return 0;
         }
-        
-        pthread_create(&threadA[noThread], NULL, task, NULL);
+
+        struct task_args  *args = (struct task_args*)malloc(sizeof(struct task_args));
+        args->socket = connFd;
+        pthread_create(&threadA[noThread], NULL, task, (void *)args);
         
         noThread++;
     }
@@ -105,17 +112,20 @@ int start_server(const char *ip_chr, int portNo, int client_num, string formalis
     return 0;
 }
 
-void *task (void *dummyPt)
+
+void *task (void *args)
 {
-    cout << "Thread No: " << pthread_self() << "connFd: " << connFd << endl;
+    int socket = ((struct task_args*) args)->socket;
+    cout << "Thread No: " << pthread_self() << "socket: " << socket << endl;
     bool running = true;
     while(running)
     {
-        std::string message = recv_msg_with_length(connFd);
+        std::string message = recv_msg_with_length(socket);
+
         auto msg_json = json::parse(message);
         for (const auto& m: msg_json){
             vector<string> all_keys;
-           
+
             for (const auto& key: m["keys"]){
                 all_keys.push_back(key);
                 State state = qm.get(key);
@@ -125,22 +135,22 @@ void *task (void *dummyPt)
                     }
                 }
             }
-            
+
             sort(all_keys.begin(), all_keys.end());
             for (const auto& key: all_keys){
                 locks[key].lock();
             }
-            
+
             auto type = (std::string)m["type"];
             if (type == "SET"){
                 vector<string> ks = m["keys"];
                 vector<double> amplitudes = m["args"]["amplitudes"];
                 qm.set(ks, amplitudes);
-                
+
             } else if (type == "GET"){
                 string key = m["keys"][0];
                 State state = qm.get(key);
-                send_msg_with_length(connFd, state.serialization());
+                send_msg_with_length(socket, state.serialization());
             } else if (type == "RUN"){
                 Circuit * circuit = new Circuit(m["args"]["circuit"]);
                 vector<string> keys = m["args"]["keys"];
@@ -148,26 +158,26 @@ void *task (void *dummyPt)
                 map<string, int> res = qm.run_circuit(circuit, keys, meas_samp);
                 if (res.size() > 0){
                     json j_res = res;
-                    send_msg_with_length(connFd, j_res.dump());
+                    send_msg_with_length(socket, j_res.dump());
                 }
-                
+
             } else if (type == "CLOSE"){
                 running = false;
                 break;
             } else if (type == "SYNC"){
                 json j_res = true;
-                send_msg_with_length(connFd, j_res.dump());
+                send_msg_with_length(socket, j_res.dump());
             }
             else {
                 printf("Receive unknown type of message %s", type.c_str());
             }
-            
+
             for (const auto& key: all_keys){
                 locks[key].unlock();
             }
         }
     }
     cout << "\nClosing thread and conn" << endl;
-    close(connFd);
+    close(socket);
     return 0;
 }

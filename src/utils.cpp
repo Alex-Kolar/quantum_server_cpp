@@ -32,10 +32,11 @@ uint chars_to_int(char* raw_data){
     return a;
 }
 
+int MAX_MSG_LEN=100000;
 
 void send_msg_with_length(int socket, std::string message) {
     u_long message_length = message.length();
-    char data[1024];
+    char data[MAX_MSG_LEN];
     int_to_chars(message_length, data);
     for (int i=0; i < message.length(); i++) {
         data[i+LEN_BYTE_LEN] = message[i];
@@ -46,16 +47,19 @@ void send_msg_with_length(int socket, std::string message) {
 
 
 std::string recv_msg_with_length(int socket) {
-    char buffer[1024];
+    char buffer[MAX_MSG_LEN];
     read(socket, buffer, LEN_BYTE_LEN);
     int msg_len = chars_to_int(buffer);
-    if (msg_len <= 0 || msg_len >= 1024){
+
+    if (msg_len <= 0 || msg_len >= MAX_MSG_LEN){
+        perror("illegal msg length");
         return "";
     }
+
     read(socket, buffer, msg_len);
     char res[msg_len];
     strncpy(res, buffer, msg_len);
-    
+
     std::string res_str;
     for (int i=0; i<msg_len; i++) {
         res_str += res[i];
