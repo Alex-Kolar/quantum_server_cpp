@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.10)
+project(quantum_server_cpp)
+
+set(CMAKE_CXX_STANDARD 11)
+
+find_package(Eigen3 3.3 REQUIRED)
+
+add_executable(quantum_server_cpp
+        src/main.cpp
+        src/circuit.cpp
+        src/multi_thread_server.cpp
+        src/quantum_manager.cpp
+        src/utils.cpp)
+
+add_executable(test_circuit
+        tests/test_circuit.cpp
+        src/circuit.cpp
+        src/quantum_manager.cpp
+        src/utils.cpp)
+
+target_link_libraries(quantum_server_cpp Eigen3::Eigen)
+target_link_libraries(test_circuit Eigen3::Eigen)

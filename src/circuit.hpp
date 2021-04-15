@@ -13,16 +13,23 @@
 #include <string>
 #include <complex>
 #include "nlohmann/json.hpp"
+#include "qpp/qpp.h"
+#include <Eigen/Dense>
 
 using json = nlohmann::json;
 
 class Circuit{
-    int size;
-    std::vector<std::pair<std::string, std::vector<int>>> gates;
-    std::vector<int> measured_qubits;
+    u_int size;
+    std::vector<std::pair<std::string, std::vector<u_int>>> gates;
+    std::vector<u_int> measured_qubits;
 public:
     Circuit(json);
-    std::vector<std::vector<std::complex<double>>> get_unitary_matrix();
+    std::vector<std::pair<std::string, std::vector<u_int>>> get_gates() {
+        return gates;
+    };
+    std::vector<u_int> get_measured() {
+        return measured_qubits;
+    };
 };
 
 #endif /* circuit_hpp */

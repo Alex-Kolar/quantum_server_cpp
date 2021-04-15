@@ -13,18 +13,21 @@
 #include <complex>
 #include <map>
 #include "circuit.hpp"
+#include <Eigen/Dense>
 
 using namespace std;
 
 class State{
 public:
     vector<string> keys;
-    vector<complex<double>> state;
+    Eigen::VectorXcd state;
     string serialization(){
         json j;
         j["keys"] = keys;
         vector<double> complex_vect;
-        for (complex<double> c: state){
+        complex<double> c;
+        for (u_int i = 0; i<state.size(); ++i){
+            c = state(i);
             complex_vect.push_back(c.real());
             complex_vect.push_back(c.imag());
         }
@@ -32,7 +35,7 @@ public:
         return j.dump();
     }
     State() {}
-    State(vector<complex<double>> s, vector<string> k){
+    State(Eigen::VectorXcd s, vector<string> k){
         state = s;
         keys = k;
     }
@@ -45,17 +48,25 @@ public:
         return states[key];
     }
     void set(vector<string> ks, vector<double> amplitudes){
-        vector<complex<double>> real_amp;
+        Eigen::VectorXcd real_amp;
         for (int i=0; i < amplitudes.size(); i+=2) {
-            complex<double> complex_num = amplitudes[i] + i * amplitudes[i+1];
-            real_amp.push_back(complex_num);
+            complex<double> complex_num (amplitudes[i], amplitudes[i+1]);
+            real_amp << complex_num;
         }
         State s = State(real_amp, ks);
-        for (string k:ks){
+        for (string k: ks){
+            states[k] = s;
+        }
+    }
+    void set(vector<string> ks, Eigen::VectorXcd amplitudes) {
+        State s = State(amplitudes, ks);
+        for (string k: ks) {
             states[k] = s;
         }
     }
     map<string, int> run_circuit(Circuit*, vector<string>, float);
+private:
+    std::pair<Eigen::VectorXcd, std::vector<string>> prepare_state(std::vector<string>* keys);
 };
 
 //class QuantumManagerKet : public QuantumManager{
