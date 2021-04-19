@@ -42,18 +42,22 @@ public:
 };
 
 class QuantumManager{
-    map<string, State> states;
 public:
+    map<string, State> states;
+
     State get(string key){
         return states[key];
     }
     void set(vector<string> ks, vector<double> amplitudes){
-        Eigen::VectorXcd real_amp;
+        const unsigned long size = amplitudes.size() / 2;
+        Eigen::VectorXcd complex_amp(size);
+
         for (int i=0; i < amplitudes.size(); i+=2) {
             complex<double> complex_num (amplitudes[i], amplitudes[i+1]);
-            real_amp << complex_num;
+            complex_amp(i / 2) = complex_num;
         }
-        State s = State(real_amp, ks);
+
+        State s = State(complex_amp, ks);
         for (string k: ks){
             states[k] = s;
         }
@@ -67,6 +71,7 @@ public:
     map<string, int> run_circuit(Circuit*, vector<string>, float);
 private:
     std::pair<Eigen::VectorXcd, std::vector<string>> prepare_state(std::vector<string>* keys);
+    Eigen::VectorXcd vector_kron(Eigen::VectorXcd* first, Eigen::VectorXcd* second);
 };
 
 //class QuantumManagerKet : public QuantumManager{
