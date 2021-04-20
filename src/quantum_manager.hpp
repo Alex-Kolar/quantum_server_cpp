@@ -70,8 +70,9 @@ public:
     }
     map<string, int> run_circuit(Circuit*, vector<string>, float);
 private:
-    std::pair<Eigen::VectorXcd, std::vector<string>> prepare_state(std::vector<string>* keys);
-    Eigen::VectorXcd vector_kron(Eigen::VectorXcd* first, Eigen::VectorXcd* second);
+    pair<Eigen::VectorXcd, vector<string>> prepare_state(vector<string>*);
+    Eigen::VectorXcd vector_kron(Eigen::VectorXcd* first, Eigen::VectorXcd*);
+    map<string, int> measure_helper(Eigen::VectorXcd, vector<u_int>, vector<string>, float);
 };
 
 //class QuantumManagerKet : public QuantumManager{
