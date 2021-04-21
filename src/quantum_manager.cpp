@@ -58,8 +58,8 @@ std::pair<Eigen::VectorXcd, std::vector<string>> QuantumManager::prepare_state(s
     for (string key: *keys) {
         if (find(all_keys.begin(), all_keys.end(), key) == all_keys.end()) {
             auto state = get(key);
-            old_states.push_back(state.state);
-            all_keys.insert(all_keys.end(), state.keys.begin(), state.keys.end());
+            old_states.push_back(state->state);
+            all_keys.insert(all_keys.end(), state->keys.begin(), state->keys.end());
         }
     }
 
@@ -111,7 +111,7 @@ map<string, int> QuantumManager::measure_helper(Eigen::VectorXcd state,
     vector<cmat> resultant_states = std::get<ST>(meas_data);
 
     // determine measurement result using random sample
-    int cum_sum = 0;
+    double cum_sum = 0;
     int res = 0;
     while (res < probs.size()) {
         cum_sum += probs[res];

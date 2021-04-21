@@ -126,22 +126,28 @@ void *task (void *args)
         for (const auto& m: msg_json){
             vector<string> all_keys;
 
-            for (const auto& key: m["keys"]){
-                all_keys.push_back(key);
-                State state = qm.get(key);
-                for (string k: state.keys){
-                    if (*find(all_keys.begin(), all_keys.end(), k) != k){
-                        all_keys.push_back(k);
+            for (const string key: m["keys"]){
+                if (qm.exist(key)){
+                    State * state = qm.get(key);
+                    for (string k: state->keys){
+                        if (find(all_keys.begin(), all_keys.end(), k) == all_keys.end()){
+                            all_keys.push_back(k);
+                        }
                     }
+                } else {
+                    mutex * l = &locks[key];
                 }
             }
 
             sort(all_keys.begin(), all_keys.end());
+
             for (const auto& key: all_keys){
-                locks[key].lock();
+                mutex * l = &locks[key];
+                l->lock();
             }
 
             auto type = (std::string)m["type"];
+
             if (type == "SET"){
                 vector<string> ks = m["keys"];
                 vector<double> amplitudes = m["args"]["amplitudes"];
@@ -149,8 +155,8 @@ void *task (void *args)
 
             } else if (type == "GET"){
                 string key = m["keys"][0];
-                State state = qm.get(key);
-                send_msg_with_length(socket, state.serialization());
+                State * state = qm.get(key);
+                send_msg_with_length(socket, state->serialization());
             } else if (type == "RUN"){
                 Circuit * circuit = new Circuit(m["args"]["circuit"]);
                 vector<string> keys = m["args"]["keys"];

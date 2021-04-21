@@ -1,7 +1,5 @@
 #include "multi_thread_server.hpp"
 
-#include <vector>
-
 
 int main(int argc, const char * argv[]) {
     const char * ip = argv[1];

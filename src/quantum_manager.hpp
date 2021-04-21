@@ -14,6 +14,8 @@
 #include <map>
 #include "circuit.hpp"
 #include <Eigen/Dense>
+#include <shared_mutex>
+#include <mutex>
 
 using namespace std;
 
@@ -36,19 +38,24 @@ public:
     }
     State() {}
     State(Eigen::VectorXcd s, vector<string> k){
+        assert (k.size() > 0);
         state = s;
         keys = k;
     }
 };
 
+
 class QuantumManager{
 public:
-    map<string, State> states;
+    map<string, State*> states;
+    shared_mutex map_lock;
 
-    State get(string key){
+    State* get(string key){
+        shared_lock lock(map_lock);
         return states[key];
     }
     void set(vector<string> ks, vector<double> amplitudes){
+        unique_lock lock(map_lock);
         const unsigned long size = amplitudes.size() / 2;
         Eigen::VectorXcd complex_amp(size);
 
@@ -57,18 +64,25 @@ public:
             complex_amp(i / 2) = complex_num;
         }
 
-        State s = State(complex_amp, ks);
+        State* s = new State(complex_amp, ks);
         for (string k: ks){
             states[k] = s;
         }
     }
     void set(vector<string> ks, Eigen::VectorXcd amplitudes) {
-        State s = State(amplitudes, ks);
+        unique_lock lock(map_lock);
+        State* s = new State(amplitudes, ks);
         for (string k: ks) {
             states[k] = s;
         }
     }
     map<string, int> run_circuit(Circuit*, vector<string>, float);
+
+    bool exist(string key){
+        shared_lock lock(map_lock);
+        return states.find(key) != states.end();
+    }
+
 private:
     pair<Eigen::VectorXcd, vector<string>> prepare_state(vector<string>*);
     Eigen::VectorXcd vector_kron(Eigen::VectorXcd* first, Eigen::VectorXcd*);
