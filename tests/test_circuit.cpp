@@ -52,9 +52,9 @@ int main() {
     new_state = qm.get("2");
 
     cout << "new state:" << endl;
-    cout << disp(new_state.state) << endl;
+    cout << disp(new_state->state) << endl;
     cout << "new keys:" << endl;
-    auto new_keys = new_state.keys;
+    auto new_keys = new_state->keys;
     for (auto key: new_keys) {
         cout << key << endl;
     }

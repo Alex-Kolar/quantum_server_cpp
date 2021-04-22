@@ -10,13 +10,21 @@ add_executable(quantum_server_cpp
         src/circuit.cpp
         src/multi_thread_server.cpp
         src/quantum_manager.cpp
-        src/utils.cpp)
+        src/utils.cpp
+        src/utils.tpp)
 
 add_executable(test_circuit
         tests/test_circuit.cpp
         src/circuit.cpp
         src/quantum_manager.cpp
-        src/utils.cpp)
+        src/utils.cpp
+        src/utils.tpp)
+
+add_executable(test_cache
+        tests/test_cache.cpp
+        src/utils.cpp
+        src/utils.tpp)
 
 target_link_libraries(quantum_server_cpp Eigen3::Eigen)
 target_link_libraries(test_circuit Eigen3::Eigen)
+target_link_libraries(test_cache Eigen3::Eigen)
