@@ -2,10 +2,14 @@
 // Created by Alex Kolar on 4/21/21.
 //
 #include <map>
+#include <vector>
+#include <string>
+#include "../src/qpp/qpp.h"
+
 #include "../src/utils.hpp"
 
 int main() {
-    // basic functionality
+    /// basic functionality
 
     LRUCache<int, double*> cache(3);
 
@@ -31,7 +35,7 @@ int main() {
     if (!cache.get(1))
         cout << "Value cached at 1 has been overwritten." << endl;
 
-    // with vectors
+    /// with vectors
 
     LRUCache<Eigen::VectorXcd, map<string, int>*> cache_vector(3);
 
@@ -45,4 +49,29 @@ int main() {
     cache_vector.put(key, value);
     if (cache_vector.get(key))
         cout << "Successfully stored vector." << endl;
+
+    /// with tuple from measure function
+
+    typedef tuple<Eigen::VectorXcd, vector<u_int>, vector<string>> key_type;
+    typedef tuple<vector<double>, vector<qpp::cmat>> value_type;
+    LRUCache<key_type, value_type*> cache_tuple(3);
+
+    // define tuple inputs
+    Eigen::VectorXcd tuple1(2);
+    tuple1(0) = 1;
+    tuple1(1) = 0;
+    vector<u_int> tuple2;
+    tuple2.push_back(0);
+    vector<string> tuple3;
+    tuple3.push_back("1");
+
+    key_type test_key (tuple1, tuple2, tuple3);
+
+    // define output
+    auto* test_value = new value_type;
+
+    // test cache
+    cache_tuple.put(test_key, test_value);
+    if (cache_tuple.get(test_key))
+        cout << "Successfully stored tuple." << endl;
 }

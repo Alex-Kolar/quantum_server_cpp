@@ -6,11 +6,13 @@
 //
 
 #include <iostream>
-#include "quantum_manager.hpp"
-#include "circuit.hpp"
 #include <map>
 #include <vector>
 #include "qpp/qpp.h"
+
+#include "quantum_manager.hpp"
+#include "circuit.hpp"
+#include "utils.hpp"
 
 using namespace qpp;
 

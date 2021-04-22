@@ -29,6 +29,7 @@
 #include <iostream>
 #include <list>
 #include <unordered_map>
+#include <vector>
 #include <Eigen/Dense>
 
 using namespace std;
@@ -39,27 +40,57 @@ void send_msg_with_length(int socket, string message);
 string recv_msg_with_length(int socket);
 int rand_int(int low, int high);
 
-// custom hash definitions for map
+// custom hash definitions for map: used in run_circuit
+template <typename T>
+void hash_accumulate(T input, size_t* seed) {
+    (*seed) = std::hash<T>()(input) + 0x9e3779b9 + ((*seed) << 6) + ((*seed) >> 2);
+}
+
 namespace std {
-    template<>
+    template <>
     struct hash<complex<double>> {
         size_t operator()(complex<double> const& comp) const {
             size_t seed = 0;
-            seed ^= std::hash<double>()(comp.real()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-            seed ^= std::hash<double>()(comp.imag()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+            hash_accumulate<double>(comp.real(), &seed);
+            hash_accumulate<double>(comp.imag(), &seed);
             return seed;
         };
     };
-    template<>
+    template <>
     struct hash<Eigen::VectorXcd> {
         size_t operator()(Eigen::VectorXcd const& matrix) const {
             size_t seed = 0;
             for (size_t i = 0; i < matrix.size(); ++i) {
                 auto elem = *(matrix.data() + i);
-                seed ^= std::hash<Eigen::VectorXcd::Scalar>()(elem) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+                hash_accumulate<Eigen::VectorXcd::Scalar>(elem, &seed);
             }
             return seed;
         };
+    };
+    template <typename T>
+    struct hash<vector<T>> {
+        size_t operator()(vector<T> const& vect) const {
+            size_t seed = 0;
+            for (size_t i = 0; i < vect.size(); ++i) {
+                T elem = vect[i];
+                hash_accumulate<T>(elem, &seed);
+            }
+            return seed;
+        }
+    };
+    template <>
+    struct hash<tuple<Eigen::VectorXcd, vector<u_int>, vector<string>>> {
+        size_t operator()(tuple<Eigen::VectorXcd,
+                                vector<u_int>,
+                                vector<string>> const& args) const {
+            Eigen::VectorXcd first; vector<u_int> second; vector<string> third;
+            tie(first, second, third) = args;
+            size_t seed = 0;
+            hash_accumulate<Eigen::VectorXcd>(first, &seed);
+            hash_accumulate<vector<u_int>>(second, &seed);
+            hash_accumulate<vector<string>>(third, &seed);
+            return seed;
+        }
     };
 }
 
