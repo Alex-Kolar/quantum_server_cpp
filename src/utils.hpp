@@ -30,6 +30,7 @@
 #include <list>
 #include <unordered_map>
 #include <vector>
+#include <shared_mutex>
 #include <Eigen/Dense>
 
 using namespace std;
@@ -79,16 +80,13 @@ namespace std {
         }
     };
     template <>
-    struct hash<tuple<Eigen::VectorXcd, vector<u_int>, vector<string>>> {
-        size_t operator()(tuple<Eigen::VectorXcd,
-                                vector<u_int>,
-                                vector<string>> const& args) const {
-            Eigen::VectorXcd first; vector<u_int> second; vector<string> third;
-            tie(first, second, third) = args;
+    struct hash<tuple<Eigen::VectorXcd, vector<u_int>>> {
+        size_t operator()(tuple<Eigen::VectorXcd, vector<u_int>> const& args) const {
+            Eigen::VectorXcd first; vector<u_int> second;
+            tie(first, second) = args;
             size_t seed = 0;
             hash_accumulate<Eigen::VectorXcd>(first, &seed);
             hash_accumulate<vector<u_int>>(second, &seed);
-            hash_accumulate<vector<string>>(third, &seed);
             return seed;
         }
     };
@@ -96,8 +94,13 @@ namespace std {
 
 template <typename K, typename V> class LRUCache{
 public:
+    shared_mutex cache_lock;
     LRUCache(int maxsize){
         size = maxsize;
+    }
+    ~LRUCache() {
+        for (auto k: key_list)
+            delete cache[k].first;
     }
     V get(K);
     void put(K, V);

@@ -52,7 +52,7 @@ int main() {
 
     /// with tuple from measure function
 
-    typedef tuple<Eigen::VectorXcd, vector<u_int>, vector<string>> key_type;
+    typedef tuple<Eigen::VectorXcd, vector<u_int>> key_type;
     typedef tuple<vector<double>, vector<qpp::cmat>> value_type;
     LRUCache<key_type, value_type*> cache_tuple(3);
 
@@ -62,10 +62,8 @@ int main() {
     tuple1(1) = 0;
     vector<u_int> tuple2;
     tuple2.push_back(0);
-    vector<string> tuple3;
-    tuple3.push_back("1");
 
-    key_type test_key (tuple1, tuple2, tuple3);
+    key_type test_key (tuple1, tuple2);
 
     // define output
     auto* test_value = new value_type;
