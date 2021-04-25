@@ -4,6 +4,8 @@ project(quantum_server_cpp)
 set(CMAKE_CXX_STANDARD 17)
 
 find_package(Eigen3 3.3 REQUIRED)
+find_package(Threads REQUIRED)
+
 
 add_executable(quantum_server_cpp
         src/main.cpp
@@ -26,5 +28,6 @@ add_executable(test_cache
         src/utils.tpp)
 
 target_link_libraries(quantum_server_cpp Eigen3::Eigen)
+target_link_libraries(quantum_server_cpp Threads::Threads)
 target_link_libraries(test_circuit Eigen3::Eigen)
 target_link_libraries(test_cache Eigen3::Eigen)
