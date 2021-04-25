@@ -48,21 +48,25 @@ void send_msg_with_length(int socket, std::string message) {
 
 std::string recv_msg_with_length(int socket) {
     char buffer[MAX_MSG_LEN];
+    std::string res_str;
     read(socket, buffer, LEN_BYTE_LEN);
     int msg_len = chars_to_int(buffer);
-
     if (msg_len <= 0 || msg_len >= MAX_MSG_LEN){
         perror("illegal msg length");
         return "";
     }
 
-    read(socket, buffer, msg_len);
-    char res[msg_len];
-    strncpy(res, buffer, msg_len);
+    while (res_str.size() < msg_len){
+        read(socket, buffer, msg_len - res_str.size());
+        int cur_size = res_str.size();
 
-    std::string res_str;
-    for (int i=0; i<msg_len; i++) {
-        res_str += res[i];
+        for (int i=0; i < (msg_len - cur_size); i++) {
+            if (buffer[i] == '\0'){
+                break;
+            }
+            res_str += buffer[i];
+        }
+        memset(buffer, '\0', MAX_MSG_LEN);
     }
 
     return res_str;
