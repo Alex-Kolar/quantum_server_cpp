@@ -6,11 +6,13 @@
 //
 
 #include <iostream>
-#include "quantum_manager.hpp"
-#include "circuit.hpp"
 #include <map>
 #include <vector>
 #include "qpp/qpp.h"
+
+#include "quantum_manager.hpp"
+#include "circuit.hpp"
+#include "utils.hpp"
 
 using namespace qpp;
 
@@ -98,17 +100,34 @@ map<string, int> QuantumManager::measure_helper(Eigen::VectorXcd state,
                                                 vector<string> all_keys,
                                                 float samp) {
     auto num_qubits_meas = indices.size();
+    vector<double> probs;
+    vector<cmat> resultant_states;
 
-    // convert input indices to idx
-    vector<idx> indices_idx(num_qubits_meas);
-    for (int i = 0; i < num_qubits_meas; i++) {
-        indices_idx[i] = (idx)indices[i];
+    // check cache for result
+    key_type key = make_tuple(state, indices);
+    value_type* value_ptr = measure_cache.get(key);
+
+    if (value_ptr) {
+        probs = std::get<0>(*value_ptr);
+        resultant_states = std::get<1>(*value_ptr);
+
+    } else {
+        // convert input indices to idx
+        vector<idx> indices_idx(num_qubits_meas);
+        for (int i = 0; i < num_qubits_meas; i++) {
+            indices_idx[i] = (idx) indices[i];
+        }
+
+        // obtain measurement data using qpp
+        auto meas_data = measure(state, gt.Id(1 << num_qubits_meas), indices_idx);
+        probs = std::get<PROB>(meas_data);
+        resultant_states = std::get<ST>(meas_data);
+
+        // store in cache
+        value_ptr = new value_type;
+        *value_ptr = make_pair(probs, resultant_states);
+        measure_cache.put(key, value_ptr);
     }
-
-    // obtain measurement data using qpp
-    auto meas_data = measure(state, gt.Id(1 << num_qubits_meas), indices_idx);
-    vector<double> probs = std::get<PROB>(meas_data);
-    vector<cmat> resultant_states = std::get<ST>(meas_data);
 
     // determine measurement result using random sample
     double cum_sum = 0;

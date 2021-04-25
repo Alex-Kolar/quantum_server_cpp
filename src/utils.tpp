@@ -1,7 +1,11 @@
+#include <shared_mutex>
+
 #include "utils.hpp"
 
 template<typename K, typename V>
 void LRUCache<K, V>::put(K key, V value) {
+    unique_lock(this->cache_lock);
+
     // mark key as most recently accessed and insert into cache
     auto it = key_list.insert(key_list.begin(), key);
     cache[key] = make_pair(value, it);
@@ -20,6 +24,8 @@ void LRUCache<K, V>::put(K key, V value) {
 
 template<typename K, typename V>
 V LRUCache<K, V>::get(K input_key) {
+    shared_lock(this->cache_lock);
+
     auto it = cache.find(input_key);
 
     // cache miss

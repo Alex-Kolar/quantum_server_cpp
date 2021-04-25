@@ -12,10 +12,15 @@
 #include <vector>
 #include <complex>
 #include <map>
-#include "circuit.hpp"
-#include <Eigen/Dense>
 #include <shared_mutex>
 #include <mutex>
+#include <Eigen/Dense>
+#include "qpp/qpp.h"
+
+#include "circuit.hpp"
+#include "utils.hpp"
+
+#define CACHE_SIZE 1024
 
 using namespace std;
 
@@ -49,6 +54,10 @@ class QuantumManager{
 public:
     map<string, State*> states;
     shared_mutex map_lock;
+
+    typedef tuple<Eigen::VectorXcd, vector<u_int>> key_type;
+    typedef tuple<vector<double>, vector<qpp::cmat>> value_type;
+    LRUCache<key_type, value_type*> measure_cache = LRUCache<key_type, value_type*>(CACHE_SIZE);
 
     State* get(string key){
         shared_lock lock(map_lock);
