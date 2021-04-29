@@ -48,7 +48,7 @@ int main() {
 
     cache_vector.put(key, value);
     if (cache_vector.get(key))
-        cout << "Successfully stored vector." << endl;
+        cout << "Successfully stored vector key." << endl;
 
     /// with tuple from measure function
 
@@ -72,4 +72,28 @@ int main() {
     cache_tuple.put(test_key, test_value);
     if (cache_tuple.get(test_key))
         cout << "Successfully stored tuple." << endl;
+
+    /// with vectors as values
+    LRUCache<string, Eigen::VectorXcd*> cache_vector_val(10);
+
+    string key1 = "1";
+    auto* val1 = new Eigen::VectorXcd(2);
+    (*val1)(0) = 1;
+    (*val1)(1) = 0;
+    string key2 = "2";
+    auto* val2 = new Eigen::VectorXcd(2);
+    (*val2)(0) = 1;
+    (*val2)(1) = 0;
+    string key3 = "3";
+    auto* val3 = new Eigen::VectorXcd(4);
+    (*val3)(0) = 1;
+    (*val3)(1) = 0;
+    (*val3)(2) = 0;
+    (*val3)(3) = 0;
+
+    cache_vector_val.put(key1, val1);
+    cache_vector_val.put(key2, val2);
+    cache_vector_val.put(key3, val3);
+    if (cache_vector_val.get(key1))
+        cout << "Successfully stored Eigen::vector." << endl;
 }

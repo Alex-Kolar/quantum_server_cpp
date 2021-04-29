@@ -90,6 +90,18 @@ namespace std {
             return seed;
         }
     };
+    template <>
+    struct hash<tuple<Eigen::VectorXcd, string, vector<u_int>>> {
+        size_t operator()(tuple<Eigen::VectorXcd, string, vector<u_int>> const& args) const {
+            Eigen::VectorXcd first; string second; vector<u_int> third;
+            tie(first, second, third) = args;
+            size_t seed = 0;
+            hash_accumulate<Eigen::VectorXcd>(first, &seed);
+            hash_accumulate<string>(second, &seed);
+            hash_accumulate<vector<u_int>>(third, &seed);
+            return seed;
+        }
+    };
 }
 
 template <typename K, typename V> class LRUCache{
