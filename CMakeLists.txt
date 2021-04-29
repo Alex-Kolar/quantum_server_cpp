@@ -30,4 +30,6 @@ add_executable(test_cache
 target_link_libraries(quantum_server_cpp Eigen3::Eigen)
 target_link_libraries(quantum_server_cpp Threads::Threads)
 target_link_libraries(test_circuit Eigen3::Eigen)
+target_link_libraries(test_circuit Threads::Threads)
 target_link_libraries(test_cache Eigen3::Eigen)
+target_link_libraries(test_cache Threads::Threads)
