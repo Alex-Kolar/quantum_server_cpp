@@ -14,7 +14,30 @@
 #include "circuit.hpp"
 #include "utils.hpp"
 
+#define CACHE_SIZE 1024
+
 using namespace qpp;
+
+typedef tuple<Eigen::VectorXcd, vector<u_int>> measure_key_type;
+typedef tuple<vector<double>, vector<qpp::cmat>> measure_value_type;
+typedef tuple<Eigen::VectorXcd, string, vector<u_int>> apply_key_type;
+typedef Eigen::VectorXcd apply_value_type;
+
+// global caches
+LRUCache<measure_key_type, measure_value_type*> measure_cache =
+        LRUCache<measure_key_type, measure_value_type*>(CACHE_SIZE);
+LRUCache<apply_key_type, apply_value_type*> h_cache =
+        LRUCache<apply_key_type, apply_value_type*>(CACHE_SIZE);
+LRUCache<apply_key_type, apply_value_type*> x_cache =
+        LRUCache<apply_key_type, apply_value_type*>(CACHE_SIZE);
+LRUCache<apply_key_type, apply_value_type*> y_cache =
+        LRUCache<apply_key_type, apply_value_type*>(CACHE_SIZE);
+LRUCache<apply_key_type, apply_value_type*> z_cache =
+        LRUCache<apply_key_type, apply_value_type*>(CACHE_SIZE);
+LRUCache<apply_key_type, apply_value_type*> ctrlx_cache =
+        LRUCache<apply_key_type, apply_value_type*>(CACHE_SIZE);
+LRUCache<apply_key_type, apply_value_type*> swap_cache =
+        LRUCache<apply_key_type, apply_value_type*>(CACHE_SIZE);
 
 map<string, int> QuantumManager::run_circuit(Circuit* circuit, vector<string> keys, float meas_samp){
     // prepare circuit
@@ -27,21 +50,23 @@ map<string, int> QuantumManager::run_circuit(Circuit* circuit, vector<string> ke
         string gate = i.first;
         vector<u_int> indices = i.second;
 
-        if (gate == "h") {
-            state = apply(state, gt.H, {indices[0]});
-        } else if (gate == "x") {
-            state = apply(state, gt.X, {indices[0]});
-        } else if (gate == "y") {
-            state = apply(state, gt.Y, {indices[0]});
-        } else if (gate == "z") {
-            state = apply(state, gt.Z, {indices[0]});
-        } else if (gate == "cx") {
-            state = applyCTRL(state, gt.X, {indices[0]}, {indices[1]});
-        } else if (gate == "swap") {
-            state = apply(state, gt.SWAP, {indices[0], indices[1]});
-        } else {
-            throw std::invalid_argument("undefined gate " + gate);
-        }
+//        if (gate == "h") {
+//            state = apply(state, gt.H, {indices[0]});
+//        } else if (gate == "x") {
+//            state = apply(state, gt.X, {indices[0]});
+//        } else if (gate == "y") {
+//            state = apply(state, gt.Y, {indices[0]});
+//        } else if (gate == "z") {
+//            state = apply(state, gt.Z, {indices[0]});
+//        } else if (gate == "cx") {
+//            state = applyCTRL(state, gt.X, {indices[0]}, {indices[1]});
+//        } else if (gate == "swap") {
+//            state = apply(state, gt.SWAP, {indices[0], indices[1]});
+//        } else {
+//            throw std::invalid_argument("undefined gate " + gate);
+//        }
+
+        state = apply_wrapper(state, gate, indices);
     }
 
     auto meas_indices = circuit->get_measured();
@@ -104,8 +129,8 @@ map<string, int> QuantumManager::measure_helper(Eigen::VectorXcd state,
     vector<cmat> resultant_states;
 
     // check cache for result
-    key_type key = make_tuple(state, indices);
-    value_type* value_ptr = measure_cache.get(key);
+    measure_key_type key = make_tuple(state, indices);
+    measure_value_type* value_ptr = measure_cache.get(key);
 
     if (value_ptr) {
         probs = std::get<0>(*value_ptr);
@@ -124,7 +149,7 @@ map<string, int> QuantumManager::measure_helper(Eigen::VectorXcd state,
         resultant_states = std::get<ST>(meas_data);
 
         // store in cache
-        value_ptr = new value_type;
+        value_ptr = new measure_value_type;
         *value_ptr = make_pair(probs, resultant_states);
         measure_cache.put(key, value_ptr);
     }
@@ -166,6 +191,112 @@ map<string, int> QuantumManager::measure_helper(Eigen::VectorXcd state,
         set(all_keys, resultant_states[res]);
 
     return output;
+}
+
+Eigen::VectorXcd QuantumManager::apply_wrapper(Eigen::VectorXcd state, string gate, vector<u_int> indices) {
+    Eigen::VectorXcd output_state(state.rows());
+    apply_key_type key = make_tuple(state, gate, indices);
+    apply_value_type* value_ptr;
+
+    if (gate == "h") {
+        value_ptr = h_cache.get(key);
+        if (value_ptr)
+            output_state = *value_ptr;
+        else {
+            output_state = apply(state, gt.H, {indices[0]});
+            value_ptr = new apply_value_type;
+            *value_ptr = output_state;
+            h_cache.put(key, value_ptr);
+        }
+
+    } else if (gate == "x") {
+        value_ptr = x_cache.get(key);
+        if (value_ptr)
+            output_state = *value_ptr;
+        else {
+            output_state = apply(state, gt.X, {indices[0]});
+            value_ptr = new apply_value_type;
+            *value_ptr = output_state;
+            x_cache.put(key, value_ptr);
+        }
+
+    } else if (gate == "y") {
+        value_ptr = y_cache.get(key);
+        if (value_ptr)
+            output_state = *value_ptr;
+        else {
+            output_state = apply(state, gt.Y, {indices[0]});
+            value_ptr = new apply_value_type;
+            *value_ptr = output_state;
+            y_cache.put(key, value_ptr);
+        }
+
+    } else if (gate == "z") {
+        value_ptr = z_cache.get(key);
+        if (value_ptr)
+            output_state = *value_ptr;
+        else {
+            output_state = apply(state, gt.Z, {indices[0]});
+            value_ptr = new apply_value_type;
+            *value_ptr = output_state;
+            z_cache.put(key, value_ptr);
+        }
+
+    } else if (gate == "cx") {
+        value_ptr = ctrlx_cache.get(key);
+        if (value_ptr)
+            output_state = *value_ptr;
+        else {
+            output_state = applyCTRL(state, gt.X, {indices[0]}, {indices[1]});
+            value_ptr = new apply_value_type;
+            *value_ptr = output_state;
+            ctrlx_cache.put(key, value_ptr);
+        }
+
+    } else if (gate == "swap") {
+        value_ptr = swap_cache.get(key);
+        if (value_ptr)
+            output_state = *value_ptr;
+        else {
+            output_state = apply(state, gt.SWAP, {indices[0], indices[1]});
+            value_ptr = new apply_value_type;
+            *value_ptr = output_state;
+            swap_cache.put(key, value_ptr);
+        }
+
+    } else {
+        throw std::invalid_argument("undefined gate " + gate);
+    }
+
+//    apply_value_type* value_ptr = apply_cache.get(key);
+//
+//    if (value_ptr) {
+//        output_state = std::get<0>(*value_ptr);
+//
+//    } else {
+//        if (gate == "h") {
+//            output_state = apply(state, gt.H, {indices[0]});
+//        } else if (gate == "x") {
+//            output_state = apply(state, gt.X, {indices[0]});
+//        } else if (gate == "y") {
+//            output_state = apply(state, gt.Y, {indices[0]});
+//        } else if (gate == "z") {
+//            output_state = apply(state, gt.Z, {indices[0]});
+//        } else if (gate == "cx") {
+//            output_state = applyCTRL(state, gt.X, {indices[0]}, {indices[1]});
+//        } else if (gate == "swap") {
+//            output_state = apply(state, gt.SWAP, {indices[0], indices[1]});
+//        } else {
+//            throw std::invalid_argument("undefined gate " + gate);
+//        }
+//
+//        // store in cache
+//        value_ptr = new apply_value_type;
+//        *value_ptr = make_tuple(output_state);
+//        apply_cache.put(key, value_ptr);
+//    }
+
+    return output_state;
 }
 
 Eigen::VectorXcd QuantumManager::vector_kron(Eigen::VectorXcd* first, Eigen::VectorXcd* second) {
