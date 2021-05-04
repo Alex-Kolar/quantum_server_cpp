@@ -20,8 +20,6 @@
 #include "circuit.hpp"
 #include "utils.hpp"
 
-#define CACHE_SIZE 1024
-
 using namespace std;
 
 class State{
@@ -54,15 +52,6 @@ class QuantumManager{
 public:
     map<string, State*> states;
     shared_mutex map_lock;
-
-    typedef tuple<Eigen::VectorXcd, vector<u_int>> measure_key_type;
-    typedef tuple<vector<double>, vector<qpp::cmat>> measure_value_type;
-    typedef tuple<Eigen::VectorXcd, string, vector<u_int>> apply_key_type;
-    typedef tuple<Eigen::VectorXcd> apply_value_type;
-    LRUCache<measure_key_type, measure_value_type*> measure_cache =
-            LRUCache<measure_key_type, measure_value_type*>(CACHE_SIZE);
-    LRUCache<apply_key_type, apply_value_type*> apply_cache =
-            LRUCache<apply_key_type, apply_value_type*>(CACHE_SIZE);
 
     State* get(string key){
         shared_lock lock(map_lock);
