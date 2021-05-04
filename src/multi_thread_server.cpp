@@ -112,6 +112,7 @@ int start_server(const char *ip_chr, int portNo, int client_num, string formalis
     return 0;
 }
 
+mutex locks_lock;
 
 void *task (void *args)
 {
@@ -135,7 +136,9 @@ void *task (void *args)
                         }
                     }
                 } else {
+                    locks_lock.lock();
                     mutex * l = &locks[key];
+                    locks_lock.unlock();
                 }
             }
 
