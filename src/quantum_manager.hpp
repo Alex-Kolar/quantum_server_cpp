@@ -90,8 +90,6 @@ private:
     pair<Eigen::VectorXcd, vector<string>> prepare_state(vector<string>*);
     Eigen::VectorXcd vector_kron(Eigen::VectorXcd*, Eigen::VectorXcd*);
     map<string, int> measure_helper(Eigen::VectorXcd, vector<u_int>, vector<string>, float);
-
-    Eigen::VectorXcd apply_wrapper(Eigen::VectorXcd, string, vector<u_int>);
 };
 
 //class QuantumManagerKet : public QuantumManager{
