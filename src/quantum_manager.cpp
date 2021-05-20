@@ -18,11 +18,6 @@
 
 using namespace qpp;
 
-typedef tuple<Eigen::VectorXcd, vector<u_int>> measure_key_type;
-typedef tuple<vector<double>, vector<qpp::cmat>> measure_value_type;
-typedef tuple<Eigen::VectorXcd, string, vector<u_int>> apply_key_type;
-typedef Eigen::VectorXcd apply_value_type;
-
 // global caches
 LRUCache<measure_key_type, measure_value_type*> measure_cache =
         LRUCache<measure_key_type, measure_value_type*>(CACHE_SIZE);
@@ -49,23 +44,6 @@ map<string, int> QuantumManager::run_circuit(Circuit* circuit, vector<string> ke
     for (auto i: circuit->get_gates()) {
         string gate = i.first;
         vector<u_int> indices = i.second;
-
-//        if (gate == "h") {
-//            state = apply(state, gt.H, {indices[0]});
-//        } else if (gate == "x") {
-//            state = apply(state, gt.X, {indices[0]});
-//        } else if (gate == "y") {
-//            state = apply(state, gt.Y, {indices[0]});
-//        } else if (gate == "z") {
-//            state = apply(state, gt.Z, {indices[0]});
-//        } else if (gate == "cx") {
-//            state = applyCTRL(state, gt.X, {indices[0]}, {indices[1]});
-//        } else if (gate == "swap") {
-//            state = apply(state, gt.SWAP, {indices[0], indices[1]});
-//        } else {
-//            throw std::invalid_argument("undefined gate " + gate);
-//        }
-
         state = apply_wrapper(state, gate, indices);
     }
 
@@ -267,34 +245,6 @@ Eigen::VectorXcd QuantumManager::apply_wrapper(Eigen::VectorXcd state, string ga
     } else {
         throw std::invalid_argument("undefined gate " + gate);
     }
-
-//    apply_value_type* value_ptr = apply_cache.get(key);
-//
-//    if (value_ptr) {
-//        output_state = std::get<0>(*value_ptr);
-//
-//    } else {
-//        if (gate == "h") {
-//            output_state = apply(state, gt.H, {indices[0]});
-//        } else if (gate == "x") {
-//            output_state = apply(state, gt.X, {indices[0]});
-//        } else if (gate == "y") {
-//            output_state = apply(state, gt.Y, {indices[0]});
-//        } else if (gate == "z") {
-//            output_state = apply(state, gt.Z, {indices[0]});
-//        } else if (gate == "cx") {
-//            output_state = applyCTRL(state, gt.X, {indices[0]}, {indices[1]});
-//        } else if (gate == "swap") {
-//            output_state = apply(state, gt.SWAP, {indices[0], indices[1]});
-//        } else {
-//            throw std::invalid_argument("undefined gate " + gate);
-//        }
-//
-//        // store in cache
-//        value_ptr = new apply_value_type;
-//        *value_ptr = make_tuple(output_state);
-//        apply_cache.put(key, value_ptr);
-//    }
 
     return output_state;
 }

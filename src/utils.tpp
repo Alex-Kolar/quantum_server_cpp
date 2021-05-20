@@ -1,4 +1,11 @@
 #include <shared_mutex>
+#include "qpp/qpp.h"
+
+// type definitions for LRUCaches in quantum manager
+typedef tuple<Eigen::VectorXcd, vector<u_int>> measure_key_type;
+typedef tuple<vector<double>, vector<qpp::cmat>> measure_value_type;
+typedef tuple<Eigen::VectorXcd, string, vector<u_int>> apply_key_type;
+typedef Eigen::VectorXcd apply_value_type;
 
 template <typename T>
 void hash_accumulate(T input, size_t* seed) {
@@ -40,8 +47,8 @@ namespace std {
         }
     };
     template <>
-    struct hash<tuple<Eigen::VectorXcd, vector<u_int>>> {
-        size_t operator()(tuple<Eigen::VectorXcd, vector<u_int>> const& args) const {
+    struct hash<measure_key_type> {
+        size_t operator()(measure_key_type const& args) const {
             Eigen::VectorXcd first; vector<u_int> second;
             tie(first, second) = args;
             size_t seed = 0;
@@ -51,8 +58,8 @@ namespace std {
         }
     };
     template <>
-    struct hash<tuple<Eigen::VectorXcd, string, vector<u_int>>> {
-        size_t operator()(tuple<Eigen::VectorXcd, string, vector<u_int>> const& args) const {
+    struct hash<apply_key_type> {
+        size_t operator()(apply_key_type const& args) const {
             Eigen::VectorXcd first; string second; vector<u_int> third;
             tie(first, second, third) = args;
             size_t seed = 0;
@@ -64,9 +71,17 @@ namespace std {
     };
 
     template <>
-    struct equal_to<tuple<Eigen::VectorXcd, string, vector<u_int>>> {
-        bool operator() (const tuple<Eigen::VectorXcd, string, vector<u_int>> x,
-                         const tuple<Eigen::VectorXcd, string, vector<u_int>> y) const {
+    struct equal_to<measure_key_type> {
+        bool operator() (const measure_key_type x, const measure_key_type y) const {
+            if ((get<0>(x).rows() != get<0>(y).rows()) or (get<0>(x).cols() != get<0>(y).cols()))
+                return false;
+            return (get<0>(x) == get<0>(y)) and (get<1>(x) == get<1>(y));
+        }
+    };
+
+    template <>
+    struct equal_to<apply_key_type> {
+        bool operator() (const apply_key_type x, const apply_key_type y) const {
             if ((get<0>(x).rows() != get<0>(y).rows()) or (get<0>(x).cols() != get<0>(y).cols()))
                 return false;
             return (get<0>(x) == get<0>(y)) and (get<1>(x) == get<1>(y)) and (get<2>(x) == get<2>(y));
@@ -80,7 +95,8 @@ void LRUCache<K, V>::put(K key, V value) {
 
     // mark key as most recently accessed and insert into cache
     auto it = key_list.insert(key_list.begin(), key);
-    cache[key] = make_pair(value, it);
+    auto pair = make_pair(value, it);
+    cache[key] = pair;
 
     // remove old keys if necessary
     if (key_list.size() > size) {
