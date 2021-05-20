@@ -51,16 +51,16 @@ std::string recv_msg_with_length(int socket) {
     std::string res_str;
     read(socket, buffer, LEN_BYTE_LEN);
     int msg_len = chars_to_int(buffer);
-    if (msg_len <= 0 || msg_len >= MAX_MSG_LEN){
-        perror("illegal msg length");
-        return "";
-    }
 
     while (res_str.size() < msg_len){
-        read(socket, buffer, msg_len - res_str.size());
+        int read_size = MAX_MSG_LEN;
+        if (msg_len - res_str.size() < read_size){
+            read_size = msg_len - res_str.size();
+        }
+        read(socket, buffer, read_size);
         int cur_size = res_str.size();
 
-        for (int i=0; i < (msg_len - cur_size); i++) {
+        for (int i=0; i < read_size; i++) {
             if (buffer[i] == '\0'){
                 break;
             }
