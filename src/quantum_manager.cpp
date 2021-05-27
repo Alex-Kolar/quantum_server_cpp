@@ -19,20 +19,20 @@
 using namespace qpp;
 
 // global caches
-LRUCache<measure_key_type, measure_value_type*> measure_cache =
-        LRUCache<measure_key_type, measure_value_type*>(CACHE_SIZE);
-LRUCache<apply_key_type, apply_value_type*> h_cache =
-        LRUCache<apply_key_type, apply_value_type*>(CACHE_SIZE);
-LRUCache<apply_key_type, apply_value_type*> x_cache =
-        LRUCache<apply_key_type, apply_value_type*>(CACHE_SIZE);
-LRUCache<apply_key_type, apply_value_type*> y_cache =
-        LRUCache<apply_key_type, apply_value_type*>(CACHE_SIZE);
-LRUCache<apply_key_type, apply_value_type*> z_cache =
-        LRUCache<apply_key_type, apply_value_type*>(CACHE_SIZE);
-LRUCache<apply_key_type, apply_value_type*> ctrlx_cache =
-        LRUCache<apply_key_type, apply_value_type*>(CACHE_SIZE);
-LRUCache<apply_key_type, apply_value_type*> swap_cache =
-        LRUCache<apply_key_type, apply_value_type*>(CACHE_SIZE);
+LRUCache<key_type, measure_value_type*> measure_cache =
+        LRUCache<key_type, measure_value_type*>(CACHE_SIZE);
+LRUCache<key_type, apply_value_type*> h_cache =
+        LRUCache<key_type, apply_value_type*>(CACHE_SIZE);
+LRUCache<key_type, apply_value_type*> x_cache =
+        LRUCache<key_type, apply_value_type*>(CACHE_SIZE);
+LRUCache<key_type, apply_value_type*> y_cache =
+        LRUCache<key_type, apply_value_type*>(CACHE_SIZE);
+LRUCache<key_type, apply_value_type*> z_cache =
+        LRUCache<key_type, apply_value_type*>(CACHE_SIZE);
+LRUCache<key_type, apply_value_type*> ctrlx_cache =
+        LRUCache<key_type, apply_value_type*>(CACHE_SIZE);
+LRUCache<key_type, apply_value_type*> swap_cache =
+        LRUCache<key_type, apply_value_type*>(CACHE_SIZE);
 
 map<string, int> QuantumManager::run_circuit(Circuit* circuit, vector<string> keys, float meas_samp){
     // prepare circuit
@@ -107,7 +107,7 @@ map<string, int> QuantumManager::measure_helper(Eigen::VectorXcd state,
     vector<cmat> resultant_states;
 
     // check cache for result
-    measure_key_type key = make_tuple(state, indices);
+    key_type key = make_tuple(state, indices);
     measure_value_type* value_ptr = measure_cache.get(key);
 
     if (value_ptr) {
@@ -173,7 +173,7 @@ map<string, int> QuantumManager::measure_helper(Eigen::VectorXcd state,
 
 Eigen::VectorXcd QuantumManager::apply_wrapper(Eigen::VectorXcd state, string gate, vector<u_int> indices) {
     Eigen::VectorXcd output_state(state.rows());
-    apply_key_type key = make_tuple(state, gate, indices);
+    key_type key = make_tuple(state, indices);
     apply_value_type* value_ptr;
 
     if (gate == "h") {

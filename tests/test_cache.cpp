@@ -3,7 +3,6 @@
 //
 #include <map>
 #include <vector>
-#include <string>
 #include "../src/qpp/qpp.h"
 
 #include "../src/utils.hpp"
@@ -43,18 +42,16 @@ int main() {
     key(0) = 1;
     key(1) = 0;
 
-    auto* value = new map<string, int>;
-    (*value)["1"] = 1;
+    auto* map_value_ptr = new map<string, int>;
+    (*map_value_ptr)["1"] = 1;
 
-    cache_vector.put(key, value);
+    cache_vector.put(key, map_value_ptr);
     if (cache_vector.get(key))
         cout << "Successfully stored vector key." << endl;
 
     /// with tuple from measure function
 
-    typedef tuple<Eigen::VectorXcd, vector<u_int>> key_type;
-    typedef tuple<vector<double>, vector<qpp::cmat>> value_type;
-    LRUCache<key_type, value_type*> cache_tuple(3);
+    LRUCache<key_type, measure_value_type*> cache_tuple(3);
 
     // define tuple inputs
     Eigen::VectorXcd tuple1(2);
@@ -63,38 +60,38 @@ int main() {
     vector<u_int> tuple2;
     tuple2.push_back(0);
 
-    key_type test_key (tuple1, tuple2);
+    key_type measure_key (tuple1, tuple2);
 
     // define output
-    auto* test_value = new value_type;
+    auto* measure_value_ptr = new measure_value_type;
 
     // test cache
-    cache_tuple.put(test_key, test_value);
-    if (cache_tuple.get(test_key))
+    cache_tuple.put(measure_key, measure_value_ptr);
+    if (cache_tuple.get(measure_key))
         cout << "Successfully stored tuple." << endl;
 
     /// with vectors as values
 
     LRUCache<string, Eigen::VectorXcd*> cache_vector_val(10);
 
-    string key1 = "1";
-    auto* val1 = new Eigen::VectorXcd(2);
-    (*val1)(0) = 1;
-    (*val1)(1) = 0;
-    string key2 = "2";
-    auto* val2 = new Eigen::VectorXcd(2);
-    (*val2)(0) = 1;
-    (*val2)(1) = 0;
-    string key3 = "3";
-    auto* val3 = new Eigen::VectorXcd(4);
-    (*val3)(0) = 1;
-    (*val3)(1) = 0;
-    (*val3)(2) = 0;
-    (*val3)(3) = 0;
+    string str_key1 = "1";
+    auto* vec_val1_ptr = new Eigen::VectorXcd(2);
+    (*vec_val1_ptr)(0) = 1;
+    (*vec_val1_ptr)(1) = 0;
+    string str_key2 = "2";
+    auto* vec_val2_ptr = new Eigen::VectorXcd(2);
+    (*vec_val2_ptr)(0) = 1;
+    (*vec_val2_ptr)(1) = 0;
+    string str_key3 = "3";
+    auto* vec_val3_ptr = new Eigen::VectorXcd(4);
+    (*vec_val3_ptr)(0) = 1;
+    (*vec_val3_ptr)(1) = 0;
+    (*vec_val3_ptr)(2) = 0;
+    (*vec_val3_ptr)(3) = 0;
 
-    cache_vector_val.put(key1, val1);
-    cache_vector_val.put(key2, val2);
-    cache_vector_val.put(key3, val3);
-    if (cache_vector_val.get(key1))
+    cache_vector_val.put(str_key1, vec_val1_ptr);
+    cache_vector_val.put(str_key2, vec_val2_ptr);
+    cache_vector_val.put(str_key3, vec_val3_ptr);
+    if (cache_vector_val.get(str_key1))
         cout << "Successfully stored Eigen::vector." << endl;
 }
