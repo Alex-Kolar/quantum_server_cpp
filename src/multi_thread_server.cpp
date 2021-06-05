@@ -26,6 +26,8 @@
 #include <arpa/inet.h>
 #include <map>
 #include <algorithm>    // std::sort
+#include <Eigen/Core>
+
 
 using namespace std;
 using json = nlohmann::json;
@@ -43,6 +45,8 @@ struct task_args{
 
 int start_server(const char *ip_chr, int portNo, int client_num, string formalism, string log_file)
 {
+    Eigen::initParallel();
+
     int listenFd;
     socklen_t len; //store size of the address
     struct sockaddr_in svrAdd, clntAdd;

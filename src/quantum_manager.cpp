@@ -161,12 +161,19 @@ map<string, int> QuantumManager::measure_helper(Eigen::VectorXcd state,
         res_bit = (res >> (num_qubits_meas-1-i)) & 1;
         set({all_keys[index]}, output_states[res_bit]);
         output[all_keys[index]] = res_bit;
-
-        all_keys.erase(start + index);
     }
 
-    if (!all_keys.empty())
-        set(all_keys, resultant_states[res]);
+    vector<string> new_keys;
+    int cur_index = 0;
+    for (auto end: indices){
+        for (; cur_index < end; cur_index ++){
+            new_keys.push_back(all_keys[cur_index]);
+        }
+        cur_index = end + 1;
+    }
+
+    if (!new_keys.empty())
+        set(new_keys, resultant_states[res]);
 
     return output;
 }
