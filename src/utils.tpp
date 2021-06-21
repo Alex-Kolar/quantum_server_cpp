@@ -88,10 +88,10 @@ void LRUCache<K, V>::put(K key, V value) {
     auto pair = make_pair(value, it);
     cache[key] = pair;
 
-    if (key_list.size() != cache.size()) {
-        // uncomment this to test functionality of algorithm (work in progress)
-        // throw logic_error("mismatch in list of cache keys and cache map");
-    }
+//    if (key_list.size() != cache.size()) {
+//        // uncomment this to test functionality of algorithm (work in progress)
+//        // throw logic_error("mismatch in list of cache keys and cache map");
+//    }
 }
 
 template<typename K, typename V>

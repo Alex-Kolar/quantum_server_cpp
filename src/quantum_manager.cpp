@@ -143,9 +143,8 @@ map<string, int> QuantumManager::measure_helper(Eigen::VectorXcd state,
         res++;
     }
 
-    // assign states
+    // values for assigning new states
     map<string, int> output;
-    auto start = all_keys.begin();
     u_int index;
     int res_bit;
     Eigen::VectorXcd state0(2);
@@ -156,24 +155,27 @@ map<string, int> QuantumManager::measure_helper(Eigen::VectorXcd state,
     state1(1) = complex<double>(1,0);
     vector<Eigen::VectorXcd> output_states = {state0, state1};
 
-    for (int i = num_qubits_meas-1; i >= 0; i--) {
+    // assign state for measured qubits
+    for (int i = 0; i < num_qubits_meas; i++) {
         index = indices[i];
         res_bit = (res >> (num_qubits_meas-1-i)) & 1;
         set({all_keys[index]}, output_states[res_bit]);
         output[all_keys[index]] = res_bit;
     }
 
-    vector<string> new_keys;
+    // assign state for non-measured qubits
+    vector<string> no_measure_keys;
     int cur_index = 0;
     for (auto end: indices){
-        for (; cur_index < end; cur_index ++){
-            new_keys.push_back(all_keys[cur_index]);
+        while (cur_index < end){
+            no_measure_keys.push_back(all_keys[cur_index]);
+            cur_index++;
         }
         cur_index = end + 1;
     }
 
-    if (!new_keys.empty())
-        set(new_keys, resultant_states[res]);
+    if (!no_measure_keys.empty())
+        set(no_measure_keys, resultant_states[res]);
 
     return output;
 }
