@@ -48,8 +48,20 @@ public:
         size = maxsize;
     }
     ~LRUCache() {
-        for (auto k: key_list)
-            delete cache[k].first;
+        unique_lock(this->cache_lock);
+        V ptr;
+        int count = 0;
+//        for (auto elem: cache)
+//            ptr = elem.second.first;
+//            delete ptr;
+//            count++;
+        auto itr = cache.begin();
+        while (itr != cache.end()) {
+            ptr = itr->second.first;
+            delete ptr;
+            itr = cache.erase(itr);
+            count++;
+        }
     }
     V get(K);
     void put(K, V);

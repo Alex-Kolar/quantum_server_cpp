@@ -35,21 +35,26 @@ using json = nlohmann::json;
 
 void *task(void *);
 
-static int connFd;
-map<string, mutex> locks;
-QuantumManager qm;
-
 struct task_args{
     int socket;
+    map<string, mutex>* locks;
+    QuantumManager* qm;
 };
+
 
 int start_server(const char *ip_chr, int portNo, int client_num, string formalism, string log_file)
 {
     Eigen::initParallel();
 
+    static int connFd;
     int listenFd;
     socklen_t len; //store size of the address
     struct sockaddr_in svrAdd, clntAdd;
+
+    map<string, mutex> locks;
+
+    // shared caches and quantum manager
+    QuantumManager qm;
     
     pthread_t threadA[client_num];
         
@@ -59,7 +64,7 @@ int start_server(const char *ip_chr, int portNo, int client_num, string formalis
         return 0;
     }
     
-    //create socket
+    // create socket
     listenFd = socket(AF_INET, SOCK_STREAM, 0);
     
     if(listenFd < 0)
@@ -74,7 +79,7 @@ int start_server(const char *ip_chr, int portNo, int client_num, string formalis
     svrAdd.sin_addr.s_addr = inet_addr(ip_chr);
     svrAdd.sin_port = htons(portNo);
     
-    //bind socket
+    // bind socket
     if(::bind(listenFd, (struct sockaddr *)&svrAdd, sizeof(svrAdd)) < 0)
     {
         cerr << "Cannot bind" << endl;
@@ -92,7 +97,7 @@ int start_server(const char *ip_chr, int portNo, int client_num, string formalis
     while (noThread < client_num)
     {
 
-        //this is where client connects. svr will hang in this mode until client conn
+        // this is where client connects. svr will hang in this mode until client conn
         connFd = accept(listenFd, (struct sockaddr *)&clntAdd, &len);
 
         if (connFd < 0)
@@ -101,8 +106,10 @@ int start_server(const char *ip_chr, int portNo, int client_num, string formalis
             return 0;
         }
 
-        struct task_args  *args = (struct task_args*)malloc(sizeof(struct task_args));
+        auto args = (struct task_args*)malloc(sizeof(struct task_args));
         args->socket = connFd;
+        args->locks = &locks;
+        args->qm = &qm;
         pthread_create(&threadA[noThread], NULL, task, (void *)args);
         
         noThread++;
@@ -121,6 +128,8 @@ mutex locks_lock;
 void *task (void *args)
 {
     int socket = ((struct task_args*) args)->socket;
+    auto qm = ((struct task_args*) args)->qm;
+    auto locks = ((struct task_args*) args)->locks;
     cout << "Thread No: " << pthread_self() << "socket: " << socket << endl;
     bool running = true;
     while(running)
@@ -132,8 +141,8 @@ void *task (void *args)
             vector<string> all_keys;
 
             for (const string key: m["keys"]){
-                if (qm.exist(key)){
-                    State * state = qm.get(key);
+                if (qm->exist(key)){
+                    State * state = qm->get(key);
                     for (string k: state->keys){
                         if (find(all_keys.begin(), all_keys.end(), k) == all_keys.end()){
                             all_keys.push_back(k);
@@ -141,7 +150,7 @@ void *task (void *args)
                     }
                 } else {
                     locks_lock.lock();
-                    mutex * l = &locks[key];
+                    mutex * l = &(*locks)[key];
                     locks_lock.unlock();
                 }
             }
@@ -149,7 +158,7 @@ void *task (void *args)
             sort(all_keys.begin(), all_keys.end());
 
             for (const auto& key: all_keys){
-                mutex * l = &locks[key];
+                mutex * l = &(*locks)[key];
                 l->lock();
             }
 
@@ -158,26 +167,28 @@ void *task (void *args)
             if (type == "SET"){
                 vector<string> ks = m["keys"];
                 vector<double> amplitudes = m["args"]["amplitudes"];
-                qm.set(ks, amplitudes);
-
-            } else if (type == "GET"){
+                qm->set(ks, amplitudes);
+            }
+            else if (type == "GET"){
                 string key = m["keys"][0];
-                State * state = qm.get(key);
+                State * state = qm->get(key);
                 send_msg_with_length(socket, state->serialization());
-            } else if (type == "RUN"){
-                Circuit * circuit = new Circuit(m["args"]["circuit"]);
+            }
+            else if (type == "RUN"){
+                auto circuit = new Circuit(m["args"]["circuit"]);
                 vector<string> keys = m["args"]["keys"];
                 float meas_samp = m["args"]["meas_samp"];
-                map<string, int> res = qm.run_circuit(circuit, keys, meas_samp);
-                if (res.size() > 0){
+                map<string, int> res = qm->run_circuit(circuit, keys, meas_samp);
+                if (!res.empty()){
                     json j_res = res;
                     send_msg_with_length(socket, j_res.dump());
                 }
-
-            } else if (type == "CLOSE"){
+            }
+            else if (type == "CLOSE"){
                 running = false;
                 break;
-            } else if (type == "SYNC"){
+            }
+            else if (type == "SYNC"){
                 json j_res = true;
                 send_msg_with_length(socket, j_res.dump());
             }
@@ -186,7 +197,7 @@ void *task (void *args)
             }
 
             for (const auto& key: all_keys){
-                locks[key].unlock();
+                (*locks)[key].unlock();
             }
         }
     }
