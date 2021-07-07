@@ -8,6 +8,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <memory>
 #include "qpp/qpp.h"
 
 #include "quantum_manager.hpp"
@@ -19,20 +20,20 @@
 using namespace qpp;
 
 // global caches
-LRUCache<key_type, measure_value_type*> measure_cache =
-        LRUCache<key_type, measure_value_type*>(CACHE_SIZE);
-LRUCache<key_type, apply_value_type*> h_cache =
-        LRUCache<key_type, apply_value_type*>(CACHE_SIZE);
-LRUCache<key_type, apply_value_type*> x_cache =
-        LRUCache<key_type, apply_value_type*>(CACHE_SIZE);
-LRUCache<key_type, apply_value_type*> y_cache =
-        LRUCache<key_type, apply_value_type*>(CACHE_SIZE);
-LRUCache<key_type, apply_value_type*> z_cache =
-        LRUCache<key_type, apply_value_type*>(CACHE_SIZE);
-LRUCache<key_type, apply_value_type*> ctrlx_cache =
-        LRUCache<key_type, apply_value_type*>(CACHE_SIZE);
-LRUCache<key_type, apply_value_type*> swap_cache =
-        LRUCache<key_type, apply_value_type*>(CACHE_SIZE);
+LRUCache<key_type, measure_value_type> measure_cache =
+        LRUCache<key_type, measure_value_type>(CACHE_SIZE);
+LRUCache<key_type, apply_value_type> h_cache =
+        LRUCache<key_type, apply_value_type>(CACHE_SIZE);
+LRUCache<key_type, apply_value_type> x_cache =
+        LRUCache<key_type, apply_value_type>(CACHE_SIZE);
+LRUCache<key_type, apply_value_type> y_cache =
+        LRUCache<key_type, apply_value_type>(CACHE_SIZE);
+LRUCache<key_type, apply_value_type> z_cache =
+        LRUCache<key_type, apply_value_type>(CACHE_SIZE);
+LRUCache<key_type, apply_value_type> ctrlx_cache =
+        LRUCache<key_type, apply_value_type>(CACHE_SIZE);
+LRUCache<key_type, apply_value_type> swap_cache =
+        LRUCache<key_type, apply_value_type>(CACHE_SIZE);
 
 map<string, int> QuantumManager::run_circuit(Circuit* circuit, vector<string> keys, float meas_samp){
     // prepare circuit
@@ -98,7 +99,7 @@ std::pair<Eigen::VectorXcd, std::vector<string>> QuantumManager::prepare_state(s
     return res;
 }
 
-map<string, int> QuantumManager::measure_helper(Eigen::VectorXcd state,
+map<string, int> QuantumManager::measure_helper(const Eigen::VectorXcd& state,
                                                 vector<u_int> indices,
                                                 vector<string> all_keys,
                                                 float samp) {
@@ -108,11 +109,10 @@ map<string, int> QuantumManager::measure_helper(Eigen::VectorXcd state,
 
     // check cache for result
     key_type key = make_tuple(state, indices);
-    measure_value_type* value_ptr = measure_cache.get(key);
-
-    if (value_ptr) {
-        probs = std::get<0>(*value_ptr);
-        resultant_states = std::get<1>(*value_ptr);
+    if (measure_cache.contains(key)) {
+        measure_value_type value = measure_cache.get(key);
+        probs = std::get<0>(value);
+        resultant_states = std::get<1>(value);
 
     } else {
         // convert input indices to idx
@@ -127,9 +127,10 @@ map<string, int> QuantumManager::measure_helper(Eigen::VectorXcd state,
         resultant_states = std::get<ST>(meas_data);
 
         // store in cache
-        value_ptr = new measure_value_type;
-        *value_ptr = make_pair(probs, resultant_states);
-        measure_cache.put(key, value_ptr);
+//        value_ptr = new measure_value_type;
+//        *value_ptr = make_pair(probs, resultant_states);
+        measure_value_type value = make_pair(probs, resultant_states);
+        measure_cache.put(key, value);
     }
 
     // determine measurement result using random sample
@@ -180,75 +181,56 @@ map<string, int> QuantumManager::measure_helper(Eigen::VectorXcd state,
     return output;
 }
 
-Eigen::VectorXcd QuantumManager::apply_wrapper(Eigen::VectorXcd state, string gate, vector<u_int> indices) {
+Eigen::VectorXcd QuantumManager::apply_wrapper(const Eigen::VectorXcd& state, const string& gate, vector<u_int> indices) {
     Eigen::VectorXcd output_state(state.rows());
     key_type key = make_tuple(state, indices);
-    apply_value_type* value_ptr;
 
     if (gate == "h") {
-        value_ptr = h_cache.get(key);
-        if (value_ptr)
-            output_state = *value_ptr;
+        if (h_cache.contains(key))
+            output_state = h_cache.get(key);
         else {
             output_state = apply(state, gt.H, {indices[0]});
-            value_ptr = new apply_value_type;
-            *value_ptr = output_state;
-            h_cache.put(key, value_ptr);
+            h_cache.put(key, output_state);
         }
 
     } else if (gate == "x") {
-        value_ptr = x_cache.get(key);
-        if (value_ptr)
-            output_state = *value_ptr;
+        if (x_cache.contains(key))
+            output_state = x_cache.get(key);
         else {
             output_state = apply(state, gt.X, {indices[0]});
-            value_ptr = new apply_value_type;
-            *value_ptr = output_state;
-            x_cache.put(key, value_ptr);
+            x_cache.put(key, output_state);
         }
 
     } else if (gate == "y") {
-        value_ptr = y_cache.get(key);
-        if (value_ptr)
-            output_state = *value_ptr;
+        if (y_cache.contains(key))
+            output_state = y_cache.get(key);
         else {
             output_state = apply(state, gt.Y, {indices[0]});
-            value_ptr = new apply_value_type;
-            *value_ptr = output_state;
-            y_cache.put(key, value_ptr);
+            y_cache.put(key, output_state);
         }
 
     } else if (gate == "z") {
-        value_ptr = z_cache.get(key);
-        if (value_ptr)
-            output_state = *value_ptr;
+        if (z_cache.contains(key))
+            output_state = z_cache.get(key);
         else {
             output_state = apply(state, gt.Z, {indices[0]});
-            value_ptr = new apply_value_type;
-            *value_ptr = output_state;
-            z_cache.put(key, value_ptr);
+            z_cache.put(key, output_state);
         }
 
     } else if (gate == "cx") {
-        value_ptr = ctrlx_cache.get(key);
-        if (value_ptr)
-            output_state = *value_ptr;
+        if (ctrlx_cache.contains(key))
+            output_state = ctrlx_cache.get(key);
         else {
             output_state = applyCTRL(state, gt.X, {indices[0]}, {indices[1]});
-            value_ptr = new apply_value_type;
-            *value_ptr = output_state;
-            ctrlx_cache.put(key, value_ptr);
+            ctrlx_cache.put(key, output_state);
         }
 
     } else if (gate == "swap") {
-        value_ptr = swap_cache.get(key);
-        if (value_ptr)
-            output_state = *value_ptr;
+        if (swap_cache.contains(key))
+            output_state = swap_cache.get(key);
         else {
             output_state = apply(state, gt.SWAP, {indices[0], indices[1]});
-            value_ptr = new apply_value_type;
-            *value_ptr = output_state;
-            swap_cache.put(key, value_ptr);
+            swap_cache.put(key, output_state);
         }
 
     } else {

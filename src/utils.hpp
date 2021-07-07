@@ -44,12 +44,11 @@ int rand_int(int low, int high);
 template <typename K, typename V> class LRUCache{
 public:
     shared_mutex cache_lock;
-    LRUCache(int maxsize){
+    explicit LRUCache(int maxsize){
         size = maxsize;
     }
-    ~LRUCache() {
-        for (auto k: key_list)
-            delete cache[k].first;
+    bool contains(K key){
+        return cache.count(key) > 0;
     }
     V get(K);
     void put(K, V);

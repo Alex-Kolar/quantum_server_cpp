@@ -2,8 +2,8 @@
 #include <stdexcept>
 #include "qpp/qpp.h"
 
-// type definitions for LRUCaches in quantum manager
-typedef tuple<Eigen::VectorXcd, vector<u_int>> key_type;
+// type definitions for LRUCaches contained in quantum manager
+typedef tuple<Eigen::VectorXcd, vector<u_int>>  key_type;
 typedef tuple<vector<double>, vector<qpp::cmat>> measure_value_type;
 typedef Eigen::VectorXcd apply_value_type;
 
@@ -75,12 +75,17 @@ void LRUCache<K, V>::put(K key, V value) {
     // remove old keys if necessary
     if (key_list.size() == size) {
         K old_key = key_list.back();
-        auto it_cache = cache.find(old_key);
+        V old_val = cache[old_key].first;
 
-        delete it_cache->second.first;
-
-        cache.erase(it_cache);
+        cache.erase(old_key);
         key_list.pop_back();
+//        K old_key = key_list.back();
+//        auto it_cache = cache.find(old_key);
+//
+//        delete it_cache->second.first;
+//
+//        cache.erase(it_cache);
+//        key_list.pop_back();
     }
 
     // mark key as most recently accessed and insert into cache
@@ -90,25 +95,28 @@ void LRUCache<K, V>::put(K key, V value) {
 
 //    if (key_list.size() != cache.size()) {
 //        // uncomment this to test functionality of algorithm (work in progress)
-//        // throw logic_error("mismatch in list of cache keys and cache map");
+//        throw logic_error("mismatch in list of cache keys and cache map");
 //    }
 }
 
 template<typename K, typename V>
-V LRUCache<K, V>::get(K input_key) {
-    shared_lock(this->cache_lock);
+V LRUCache<K, V>::get(K key) {
+    unique_lock(this->cache_lock);
 
-    auto it = cache.find(input_key);
+    auto it_cache = cache.find(key);
 
     // cache miss
-    if (it == cache.end())
-        return nullptr;
+    if (it_cache == cache.end())
+        throw invalid_argument("key not present in cache");
 
     // cache hit
     // update key as most recently accessed
-    auto it_key = it->second.second;
+    auto it_key = it_cache->second.second;
     key_list.splice(key_list.begin(), key_list, it_key);
+//    key_list.erase(it_key);
+//    it_key = key_list.insert(key_list.begin(), key);
+//    it_cache->second.second = it_key;
 
     // return value
-    return it->second.first;
+    return it_cache->second.first;
 }

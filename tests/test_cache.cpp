@@ -26,12 +26,12 @@ int main() {
 
     cout << "Value in cache at 1: " << *cache.get(1) << endl;
     cout << "Value in cache at 2: " << *cache.get(2) << endl;
-    if (!cache.get(3))
+    if (!cache.contains(3))
         cout << "Nothing stored at 3 yet." << endl;
 
     cache.put(3, three_ptr);
     cache.put(4, four_ptr);
-    if (!cache.get(1))
+    if (!cache.contains(1))
         cout << "Value cached at 1 has been overwritten." << endl;
 
     /// with vectors
@@ -46,52 +46,130 @@ int main() {
     (*map_value_ptr)["1"] = 1;
 
     cache_vector.put(key, map_value_ptr);
-    if (cache_vector.get(key))
+    if (cache_vector.contains(key))
         cout << "Successfully stored vector key." << endl;
 
-    /// with tuple from measure function
+    /// with measurement function
 
-    LRUCache<key_type, measure_value_type*> cache_tuple(3);
+    LRUCache<key_type, measure_value_type> measure_cache(1);
 
-    // define tuple inputs
+    // define key inputs
     Eigen::VectorXcd tuple1(2);
     tuple1(0) = 1;
     tuple1(1) = 0;
+
     vector<u_int> tuple2;
     tuple2.push_back(0);
 
-    key_type measure_key (tuple1, tuple2);
+    key_type measure_key(tuple1, tuple2);
 
-    // define output
-    auto* measure_value_ptr = new measure_value_type;
+    // define value
+    // convert input indices to idx
+    vector<qpp::idx> indices_idx;
+    indices_idx.push_back(0);
 
-    // test cache
-    cache_tuple.put(measure_key, measure_value_ptr);
-    if (cache_tuple.get(measure_key))
-        cout << "Successfully stored tuple." << endl;
+    // obtain measurement data using qpp
+    auto meas_data = qpp::measure(tuple1, qpp::gt.Id(2), indices_idx);
+    auto probs = std::get<qpp::PROB>(meas_data);
+    auto resultant_states = std::get<qpp::ST>(meas_data);
 
-    /// with vectors as values
+    // store in cache
+    measure_value_type measure_value = make_pair(probs, resultant_states);
+    measure_cache.put(measure_key, measure_value);
 
-    LRUCache<string, Eigen::VectorXcd*> cache_vector_val(10);
+    // test output
+    if (measure_cache.contains(measure_key))
+        cout << "Successfully stored measurement value." << endl;
+    else
+        throw logic_error("Failed to store measurement value.");
 
-    string str_key1 = "1";
-    auto* vec_val1_ptr = new Eigen::VectorXcd(2);
-    (*vec_val1_ptr)(0) = 1;
-    (*vec_val1_ptr)(1) = 0;
-    string str_key2 = "2";
-    auto* vec_val2_ptr = new Eigen::VectorXcd(2);
-    (*vec_val2_ptr)(0) = 1;
-    (*vec_val2_ptr)(1) = 0;
-    string str_key3 = "3";
-    auto* vec_val3_ptr = new Eigen::VectorXcd(4);
-    (*vec_val3_ptr)(0) = 1;
-    (*vec_val3_ptr)(1) = 0;
-    (*vec_val3_ptr)(2) = 0;
-    (*vec_val3_ptr)(3) = 0;
+    // insert another
+    Eigen::VectorXcd new_tuple1(2);
+    new_tuple1(0) = 0;
+    new_tuple1(1) = 1;
 
-    cache_vector_val.put(str_key1, vec_val1_ptr);
-    cache_vector_val.put(str_key2, vec_val2_ptr);
-    cache_vector_val.put(str_key3, vec_val3_ptr);
-    if (cache_vector_val.get(str_key1))
-        cout << "Successfully stored Eigen::vector." << endl;
+    key_type new_measure_key(new_tuple1, tuple2);
+
+    meas_data = qpp::measure(new_tuple1, qpp::gt.Id(2), indices_idx);
+    probs = std::get<qpp::PROB>(meas_data);
+    resultant_states = std::get<qpp::ST>(meas_data);
+
+    measure_value = make_pair(probs, resultant_states);
+    measure_cache.put(new_measure_key, measure_value);
+
+    // test output
+    if (measure_cache.contains(measure_key))
+        throw logic_error("Failed to overwrite measurement value.");
+    else
+        cout << "Successfully overwrote measurement value." << endl;
+
+    /// with apply function
+
+    LRUCache<key_type, apply_value_type> h_cache(1);
+
+    // obtain gate data
+    auto apply_key = measure_key;
+    auto output_state = qpp::apply(tuple1, qpp::gt.H, {tuple2[0]});
+    h_cache.put(apply_key, output_state);
+
+    // test output
+    if (h_cache.contains(apply_key))
+        cout << "Successfully stored gate value." << endl;
+    else
+        throw logic_error("Failed to store gate value.");
+
+    // insert another
+    auto new_apply_key = new_measure_key;
+    output_state = qpp::apply(new_tuple1, qpp::gt.H, {tuple2[0]});
+    h_cache.put(new_apply_key, output_state);
+
+    // test output
+    if (measure_cache.contains(measure_key))
+        throw logic_error("Failed to overwrite gate value.");
+    else
+        cout << "Successfully overwrote gate value." << endl;
+
+//    LRUCache<key_type, measure_value_type*> cache_tuple(3);
+//
+//    // define tuple inputs
+//    Eigen::VectorXcd tuple1(2);
+//    tuple1(0) = 1;
+//    tuple1(1) = 0;
+//    vector<u_int> tuple2;
+//    tuple2.push_back(0);
+//
+//    key_type measure_key (tuple1, tuple2);
+//
+//    // define output
+//    auto* measure_value_ptr = new measure_value_type;
+//
+//    // test cache
+//    cache_tuple.put(measure_key, measure_value_ptr);
+//    if (cache_tuple.get(measure_key))
+//        cout << "Successfully stored tuple." << endl;
+//
+//    /// with vectors as values
+//
+//    LRUCache<string, Eigen::VectorXcd*> cache_vector_val(10);
+//
+//    string str_key1 = "1";
+//    auto* vec_val1_ptr = new Eigen::VectorXcd(2);
+//    (*vec_val1_ptr)(0) = 1;
+//    (*vec_val1_ptr)(1) = 0;
+//    string str_key2 = "2";
+//    auto* vec_val2_ptr = new Eigen::VectorXcd(2);
+//    (*vec_val2_ptr)(0) = 1;
+//    (*vec_val2_ptr)(1) = 0;
+//    string str_key3 = "3";
+//    auto* vec_val3_ptr = new Eigen::VectorXcd(4);
+//    (*vec_val3_ptr)(0) = 1;
+//    (*vec_val3_ptr)(1) = 0;
+//    (*vec_val3_ptr)(2) = 0;
+//    (*vec_val3_ptr)(3) = 0;
+//
+//    cache_vector_val.put(str_key1, vec_val1_ptr);
+//    cache_vector_val.put(str_key2, vec_val2_ptr);
+//    cache_vector_val.put(str_key3, vec_val3_ptr);
+//    if (cache_vector_val.get(str_key1))
+//        cout << "Successfully stored Eigen::vector." << endl;
 }
