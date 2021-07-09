@@ -42,19 +42,22 @@ void send_msg_with_length(int socket, string message);
 string recv_msg_with_length(int socket);
 int rand_int(int low, int high);
 
-template <typename K, typename V> class LRUCache{
+template <typename K, typename V> class LRUCache {
 public:
     // for multithreading
     mutex cache_mutex;
     condition_variable cache_cv;
 
-    explicit LRUCache(int maxsize){
+    explicit LRUCache(int maxsize)
+    {
         size = maxsize;
     }
-    bool allocated(K key){
+    bool allocated(K key)
+    {
         return cache_aux.count(key) > 0;
     }
-    bool contains(K key){
+    bool contains(K key)
+    {
         return cache.count(key) > 0;
     }
     void allocate(K);

@@ -20,7 +20,8 @@ struct task_args {
 
 QuantumManager qm;
 
-int main() {
+int main()
+{
     Eigen::initParallel();
     pthread_t threadA[NO_THREADS];
 
@@ -37,7 +38,8 @@ int main() {
     return 0;
 }
 
-void* task(void* args) {
+void* task(void* args)
+{
     int key_start = ((struct task_args*) args)->key_start;
 
     json circ_json_h = {

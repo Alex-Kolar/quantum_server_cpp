@@ -8,7 +8,8 @@ typedef tuple<vector<double>, vector<qpp::cmat>> measure_value_type;
 typedef Eigen::VectorXcd apply_value_type;
 
 template <typename T>
-void hash_accumulate(T input, size_t* seed) {
+void hash_accumulate(T input, size_t* seed)
+{
     (*seed) = std::hash<T>()(input) + 0x9e3779b9 + ((*seed) << 6) + ((*seed) >> 2);
 }
 
@@ -69,7 +70,8 @@ namespace std {
 }
 
 template<typename K, typename V>
-void LRUCache<K, V>::allocate(K key) {
+void LRUCache<K, V>::allocate(K key)
+{
     // remove old keys if necessary
     if (key_list.size() == size) {
         K old_key = key_list.back();
@@ -89,15 +91,16 @@ void LRUCache<K, V>::allocate(K key) {
 }
 
 template<typename K, typename V>
-void LRUCache<K, V>::put(K key, V value) {
+void LRUCache<K, V>::put(K key, V value)
+{
     if (!allocated(key))
         allocate(key);
-
     cache[key] = value;
 }
 
 template<typename K, typename V>
-V LRUCache<K, V>::get(K key) {
+V LRUCache<K, V>::get(K key)
+{
     auto it_cache = cache.find(key);
 
     // cache miss

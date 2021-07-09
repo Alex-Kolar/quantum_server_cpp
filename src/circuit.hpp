@@ -18,16 +18,19 @@
 
 using json = nlohmann::json;
 
-class Circuit{
+class Circuit {
+public:
     u_int size;
     std::vector<std::pair<std::string, std::vector<u_int>>> gates;
     std::vector<u_int> measured_qubits;
-public:
-    Circuit(json);
-    std::vector<std::pair<std::string, std::vector<u_int>>> get_gates() {
+
+    explicit Circuit(json);
+    std::vector<std::pair<std::string, std::vector<u_int>>> get_gates()
+    {
         return gates;
     };
-    std::vector<u_int> get_measured() {
+    std::vector<u_int> get_measured()
+    {
         return measured_qubits;
     };
 };

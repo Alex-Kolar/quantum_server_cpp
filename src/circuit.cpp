@@ -14,18 +14,18 @@
 
 using json = nlohmann::json;
 
-
-Circuit::Circuit(json s_json){
+Circuit::Circuit(json s_json)
+{
     size = s_json["size"];
 
-    for (auto gate: s_json["gates"]) {
+    for (auto gate: s_json["gates"])
+    {
         std::string name = gate["name"];
         std::vector<u_int> indices = gate["indices"];
         std::pair<std::string, std::vector<u_int>> element = {name, indices};
         gates.push_back(element);
     }
     
-    for (auto m_q: s_json["measured_qubits"]){
+    for (const auto& m_q: s_json["measured_qubits"])
         measured_qubits.push_back(m_q);
-    }
 }

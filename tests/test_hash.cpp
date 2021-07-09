@@ -10,7 +10,8 @@
 #define MAX_QUBIT_SIZE 4
 #define TEST_SIZE 10000
 
-int main() {
+int main()
+{
     default_random_engine generator;
     uniform_int_distribution<u_int> distribution(1, MAX_QUBIT_SIZE);
     u_int num_qubits;

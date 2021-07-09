@@ -36,11 +36,13 @@ LRUCache<key_type, apply_value_type> swap_cache =
         LRUCache<key_type, apply_value_type>(CACHE_SIZE);
 
 
-Eigen::VectorXcd apply_wrapper(const Eigen::VectorXcd& state, const string& gate, vector<u_int> indices) {
+Eigen::VectorXcd apply_wrapper(const Eigen::VectorXcd& state, const string& gate, vector<u_int> indices)
+{
     Eigen::VectorXcd output_state(state.rows());
     key_type key = make_tuple(state, indices);
 
-    if (gate == "h") {
+    if (gate == "h")
+    {
         unique_lock<mutex> lock(h_cache.cache_mutex);
 
         if (h_cache.allocated(key)) {
@@ -58,8 +60,9 @@ Eigen::VectorXcd apply_wrapper(const Eigen::VectorXcd& state, const string& gate
             h_cache.cache_cv.notify_all();
             lock.unlock();
         }
-
-    } else if (gate == "x") {
+    }
+    else if (gate == "x")
+    {
         unique_lock<mutex> lock(x_cache.cache_mutex);
 
         if (x_cache.allocated(key)) {
@@ -77,8 +80,9 @@ Eigen::VectorXcd apply_wrapper(const Eigen::VectorXcd& state, const string& gate
             x_cache.cache_cv.notify_all();
             lock.unlock();
         }
-
-    } else if (gate == "y") {
+    }
+    else if (gate == "y")
+    {
         unique_lock<mutex> lock(y_cache.cache_mutex);
 
         if (y_cache.allocated(key)) {
@@ -96,8 +100,9 @@ Eigen::VectorXcd apply_wrapper(const Eigen::VectorXcd& state, const string& gate
             y_cache.cache_cv.notify_all();
             lock.unlock();
         }
-
-    } else if (gate == "z") {
+    }
+    else if (gate == "z")
+    {
         unique_lock<mutex> lock(z_cache.cache_mutex);
 
         if (z_cache.allocated(key)) {
@@ -115,8 +120,9 @@ Eigen::VectorXcd apply_wrapper(const Eigen::VectorXcd& state, const string& gate
             z_cache.cache_cv.notify_all();
             lock.unlock();
         }
-
-    } else if (gate == "cx") {
+    }
+    else if (gate == "cx")
+    {
         unique_lock<mutex> lock(ctrlx_cache.cache_mutex);
 
         if (ctrlx_cache.allocated(key)) {
@@ -134,8 +140,9 @@ Eigen::VectorXcd apply_wrapper(const Eigen::VectorXcd& state, const string& gate
             ctrlx_cache.cache_cv.notify_all();
             lock.unlock();
         }
-
-    } else if (gate == "swap") {
+    }
+    else if (gate == "swap")
+    {
         unique_lock<mutex> lock(swap_cache.cache_mutex);
 
         if (swap_cache.allocated(key)) {
@@ -153,41 +160,43 @@ Eigen::VectorXcd apply_wrapper(const Eigen::VectorXcd& state, const string& gate
             swap_cache.cache_cv.notify_all();
             lock.unlock();
         }
-
-    } else {
+    }
+    else {
         throw std::invalid_argument("undefined gate " + gate);
     }
 
     return output_state;
 }
 
-Eigen::VectorXcd vector_kron(Eigen::VectorXcd* first, Eigen::VectorXcd* second) {
+Eigen::VectorXcd vector_kron(Eigen::VectorXcd* first, Eigen::VectorXcd* second)
+{
     long first_size = first->rows();
     long second_size = second->rows();
     long size = first_size * second_size;
     Eigen::VectorXcd out(size);
 
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++)
         out(i) = (*first)(i / second_size) * (*second)(i % second_size);
-    }
 
     return out;
 }
 
 
-map<string, int> QuantumManager::run_circuit(Circuit* circuit, vector<string> keys, float meas_samp){
+map<string, int> QuantumManager::run_circuit(Circuit* circuit, vector<string> keys, float meas_samp)
+{
     // prepare circuit
     auto prepared = prepare_state(&keys);
     auto state = prepared.first;
     auto all_keys = prepared.second;
 
     // run circuit
-    for (auto i: circuit->get_gates()) {
+    for (const auto& i: circuit->get_gates()) {
         string gate = i.first;
         vector<u_int> indices = i.second;
         state = apply_wrapper(state, gate, indices);
     }
 
+    // perform measurement
     auto meas_indices = circuit->get_measured();
     if (meas_indices.empty()) {
         set(all_keys, state);
@@ -196,13 +205,16 @@ map<string, int> QuantumManager::run_circuit(Circuit* circuit, vector<string> ke
     return measure_helper(state, meas_indices, all_keys, meas_samp);
 }
 
-std::pair<Eigen::VectorXcd, std::vector<string>> QuantumManager::prepare_state(std::vector<string>* keys) {
+std::pair<Eigen::VectorXcd, std::vector<string>> QuantumManager::prepare_state(std::vector<string>* keys)
+{
     vector<Eigen::VectorXcd> old_states;
     vector<string> all_keys;
 
     // get all required states
-    for (string key: *keys) {
-        if (find(all_keys.begin(), all_keys.end(), key) == all_keys.end()) {
+    for (const string& key: *keys)
+    {
+        if (find(all_keys.begin(), all_keys.end(), key) == all_keys.end())
+        {
             auto state = get(key);
             old_states.push_back(state->state);
             all_keys.insert(all_keys.end(), state->keys.begin(), state->keys.end());
@@ -212,16 +224,17 @@ std::pair<Eigen::VectorXcd, std::vector<string>> QuantumManager::prepare_state(s
     // compound states
     Eigen::VectorXcd new_state(1);
     new_state(0) = complex<double>(1, 0);
-    for (auto state: old_states) {
+    for (auto state: old_states)
         new_state = vector_kron(&new_state, &state);
-    }
 
     // swap qubits if necessary
     string proper_key;
     u_int j;
     auto it = all_keys.begin();
-    for (u_int i = 0; i < keys->size(); i++) {
-        if (all_keys[i] != (*keys)[i]) {
+    for (u_int i = 0; i < keys->size(); i++)
+    {
+        if (all_keys[i] != (*keys)[i])
+        {
             proper_key = (*keys)[i];
             it = std::find(all_keys.begin(), all_keys.end(), proper_key);
             j = it - all_keys.begin(); // should always find proper_key in all_keys
@@ -251,7 +264,8 @@ map<string, int> QuantumManager::measure_helper(const Eigen::VectorXcd& state,
     key_type key = make_tuple(state, indices);
     unique_lock<mutex> lock(measure_cache.cache_mutex);
 
-    if (measure_cache.allocated(key)) {
+    if (measure_cache.allocated(key))
+    {
         // wait for value to be assigned if it isn't already
         while (!measure_cache.contains(key))
             measure_cache.cache_cv.wait(lock);
@@ -260,17 +274,17 @@ map<string, int> QuantumManager::measure_helper(const Eigen::VectorXcd& state,
 
         probs = std::get<0>(value);
         resultant_states = std::get<1>(value);
-
-    } else {
+    }
+    else
+    {
         // allocate space in cache
         measure_cache.allocate(key);
         lock.unlock();
 
         // convert input indices to idx
         vector<idx> indices_idx(num_qubits_meas);
-        for (int i = 0; i < num_qubits_meas; i++) {
+        for (int i = 0; i < num_qubits_meas; i++)
             indices_idx[i] = (idx) indices[i];
-        }
 
         // obtain measurement data using qpp
         auto meas_data = measure(state, gt.Id(1 << num_qubits_meas), indices_idx);
@@ -288,11 +302,11 @@ map<string, int> QuantumManager::measure_helper(const Eigen::VectorXcd& state,
     // determine measurement result using random sample
     double cum_sum = 0;
     int res = 0;
-    while (res < probs.size()) {
+    while (res < probs.size())
+    {
         cum_sum += probs[res];
-        if (samp < cum_sum) {
+        if (samp < cum_sum)
             break;
-        }
         res++;
     }
 
@@ -309,7 +323,8 @@ map<string, int> QuantumManager::measure_helper(const Eigen::VectorXcd& state,
     vector<Eigen::VectorXcd> output_states = {state0, state1};
 
     // assign state for measured qubits
-    for (int i = 0; i < num_qubits_meas; i++) {
+    for (int i = 0; i < num_qubits_meas; i++)
+    {
         index = indices[i];
         res_bit = (res >> (num_qubits_meas-1-i)) & 1;
         set({all_keys[index]}, output_states[res_bit]);
@@ -319,8 +334,8 @@ map<string, int> QuantumManager::measure_helper(const Eigen::VectorXcd& state,
     // assign state for non-measured qubits
     vector<string> no_measure_keys;
     int cur_index = 0;
-    for (auto end: indices){
-        while (cur_index < end){
+    for (auto end: indices) {
+        while (cur_index < end) {
             no_measure_keys.push_back(all_keys[cur_index]);
             cur_index++;
         }

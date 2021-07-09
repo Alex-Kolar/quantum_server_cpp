@@ -22,16 +22,18 @@
 
 using namespace std;
 
-class State{
+class State {
 public:
     vector<string> keys;
     Eigen::VectorXcd state;
-    string serialization(){
+
+    string serialization()
+    {
         json j;
         j["keys"] = keys;
         vector<double> complex_vect;
         complex<double> c;
-        for (u_int i = 0; i<state.size(); ++i){
+        for (u_int i = 0; i<state.size(); ++i) {
             c = state(i);
             complex_vect.push_back(c.real());
             complex_vect.push_back(c.imag());
@@ -39,24 +41,25 @@ public:
         j["state"] = complex_vect;
         return j.dump();
     }
-//    State() {}
-    State(Eigen::VectorXcd s, vector<string> k){
+    State(Eigen::VectorXcd s, vector<string> k) {
         assert (!k.empty());
         state = s;
         keys = k;
     }
 };
 
-class QuantumManager{
+class QuantumManager {
 public:
     map<string, State*> states;
     shared_mutex map_lock;
 
-    State* get(const string& key){
+    State* get(const string& key)
+    {
         shared_lock lock(map_lock);
         return states[key];
     }
-    void set(const vector<string>& ks, const vector<double>& amplitudes){
+    void set(const vector<string>& ks, const vector<double>& amplitudes)
+    {
         unique_lock lock(map_lock);
         const unsigned long size = amplitudes.size() / 2;
         Eigen::VectorXcd complex_amp(size);
@@ -71,29 +74,24 @@ public:
             states[k] = s;
         }
     }
-    void set(const vector<string>& ks, Eigen::VectorXcd amplitudes) {
+    void set(const vector<string>& ks, Eigen::VectorXcd amplitudes)
+    {
         unique_lock lock(map_lock);
         auto s = new State(amplitudes, ks);
         for (const string& k: ks) {
             states[k] = s;
         }
     }
-    map<string, int> run_circuit(Circuit*, vector<string>, float);
-
-    bool exist(const string& key){
+    bool exist(const string& key)
+    {
         shared_lock lock(map_lock);
         return states.find(key) != states.end();
     }
+    map<string, int> run_circuit(Circuit*, vector<string>, float);
 
 private:
     pair<Eigen::VectorXcd, vector<string>> prepare_state(vector<string>*);
     map<string, int> measure_helper(const Eigen::VectorXcd&, vector<u_int>, vector<string>, float);
 };
-
-//class QuantumManagerKet : public QuantumManager{
-//public:
-//    QuantumManagerKet();
-//    void set(uint[], vector<complex<double>>);
-//};
 
 #endif /* quantum_manager_hpp */

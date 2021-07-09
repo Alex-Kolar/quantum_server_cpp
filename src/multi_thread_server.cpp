@@ -13,12 +13,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <netdb.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <iostream>
-#include <fstream>
 #include <strings.h>
 #include <stdlib.h>
 #include <string>
@@ -33,13 +30,13 @@ using namespace std;
 using json = nlohmann::json;
 
 
-void *task(void *);
+void* task(void *);
 
 static int connFd;
 map<string, mutex> locks;
 QuantumManager qm;
 
-struct task_args{
+struct task_args {
     int socket;
 };
 
@@ -101,7 +98,7 @@ int start_server(const char *ip_chr, int portNo, int client_num, string formalis
             return 0;
         }
 
-        struct task_args  *args = (struct task_args*)malloc(sizeof(struct task_args));
+        struct task_args* args = (struct task_args*)malloc(sizeof(struct task_args));
         args->socket = connFd;
         pthread_create(&threadA[noThread], NULL, task, (void *)args);
         
@@ -118,7 +115,7 @@ int start_server(const char *ip_chr, int portNo, int client_num, string formalis
 
 mutex locks_lock;
 
-void *task (void *args)
+void* task (void *args)
 {
     int socket = ((struct task_args*) args)->socket;
     cout << "Thread No: " << pthread_self() << "socket: " << socket << endl;
@@ -131,8 +128,9 @@ void *task (void *args)
         for (const auto& m: msg_json){
             vector<string> all_keys;
 
-            for (const string key: m["keys"]){
-                if (qm.exist(key)){
+            for (const string key: m["keys"])
+            {
+                if (qm.exist(key)) {
                     State * state = qm.get(key);
                     for (string k: state->keys){
                         if (find(all_keys.begin(), all_keys.end(), k) == all_keys.end()){
@@ -148,49 +146,56 @@ void *task (void *args)
 
             sort(all_keys.begin(), all_keys.end());
 
-            for (const auto& key: all_keys){
+            for (const auto& key: all_keys) {
                 mutex * l = &locks[key];
                 l->lock();
             }
 
             auto type = (std::string)m["type"];
 
-            if (type == "SET"){
+            if (type == "SET")
+            {
                 vector<string> ks = m["keys"];
                 vector<double> amplitudes = m["args"]["amplitudes"];
                 qm.set(ks, amplitudes);
-
-            } else if (type == "GET"){
+            }
+            else if (type == "GET")
+            {
                 string key = m["keys"][0];
                 State * state = qm.get(key);
                 send_msg_with_length(socket, state->serialization());
-            } else if (type == "RUN"){
-                Circuit * circuit = new Circuit(m["args"]["circuit"]);
+            }
+            else if (type == "RUN")
+            {
+                auto circuit = new Circuit(m["args"]["circuit"]);
                 vector<string> keys = m["args"]["keys"];
                 float meas_samp = m["args"]["meas_samp"];
                 map<string, int> res = qm.run_circuit(circuit, keys, meas_samp);
-                if (res.size() > 0){
+                if (!res.empty()) {
                     json j_res = res;
                     send_msg_with_length(socket, j_res.dump());
                 }
-
-            } else if (type == "CLOSE"){
+            }
+            else if (type == "CLOSE")
+            {
                 running = false;
                 break;
-            } else if (type == "SYNC"){
+            }else if (type == "SYNC")
+            {
                 json j_res = true;
                 send_msg_with_length(socket, j_res.dump());
             }
-            else {
+            else
+            {
                 printf("Receive unknown type of message %s", type.c_str());
             }
 
-            for (const auto& key: all_keys){
+            for (const auto& key: all_keys) {
                 locks[key].unlock();
             }
         }
     }
     cout << "\nClosing thread and conn" << endl;
     close(socket);
-    return 0;
+    return nullptr;
 }

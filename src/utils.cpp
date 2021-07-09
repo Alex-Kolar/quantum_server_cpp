@@ -10,18 +10,13 @@
 #include <unistd.h>
 #include <netinet/in.h>
 
-
-
 #define LEN_BYTE_LEN 4
-
-
 
 void int_to_chars(u_long n, char* res){
     for (int i=0; i<LEN_BYTE_LEN; i++){
         res[i] = (n >> ((LEN_BYTE_LEN - 1 - i)*8)) & 255;
     }
 }
-
 
 uint chars_to_int(char* raw_data){
     uint a = 0;
@@ -32,7 +27,7 @@ uint chars_to_int(char* raw_data){
     return a;
 }
 
-int MAX_MSG_LEN=100000;
+int MAX_MSG_LEN = 100000;
 
 void send_msg_with_length(int socket, std::string message) {
     u_long message_length = message.length();
@@ -44,7 +39,6 @@ void send_msg_with_length(int socket, std::string message) {
     
     send(socket, data, message_length + LEN_BYTE_LEN, 0);
 }
-
 
 std::string recv_msg_with_length(int socket) {
     char buffer[MAX_MSG_LEN];
@@ -71,7 +65,6 @@ std::string recv_msg_with_length(int socket) {
 
     return res_str;
 }
-
 
 int rand_int(int low, int high){
     return low + (std::rand()/(RAND_MAX / (high - low + 1)));

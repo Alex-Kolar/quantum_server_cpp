@@ -1,7 +1,7 @@
 #include "multi_thread_server.hpp"
 
-
-int main(int argc, const char * argv[]) {
+int main(int argc, const char * argv[])
+{
     const char * ip = argv[1];
     int port = atoi(argv[2]);
     int client_num = atoi(argv[3]);

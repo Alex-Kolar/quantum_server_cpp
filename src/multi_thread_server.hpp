@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <string>
 
-
 void *task(void *);
 
 int start_server(const char *ip_chr, int portNo, int client_num, std::string formalism, std::string log_file);

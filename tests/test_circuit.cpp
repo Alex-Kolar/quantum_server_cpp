@@ -5,7 +5,8 @@
 #include "../src/circuit.hpp"
 #include "../src/quantum_manager.hpp"
 
-int main() {
+int main()
+{
     using namespace qpp;
 
     json input = json();
