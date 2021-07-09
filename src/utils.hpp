@@ -30,7 +30,8 @@
 #include <list>
 #include <unordered_map>
 #include <vector>
-#include <shared_mutex>
+#include <mutex>
+#include <condition_variable>
 #include <Eigen/Dense>
 
 using namespace std;
@@ -43,19 +44,28 @@ int rand_int(int low, int high);
 
 template <typename K, typename V> class LRUCache{
 public:
-    shared_mutex cache_lock;
+    // for multithreading
+    mutex cache_mutex;
+    condition_variable cache_cv;
+
     explicit LRUCache(int maxsize){
         size = maxsize;
+    }
+    bool allocated(K key){
+        return cache_aux.count(key) > 0;
     }
     bool contains(K key){
         return cache.count(key) > 0;
     }
+    void allocate(K);
     V get(K);
     void put(K, V);
+
 private:
     int size;
     list<K> key_list;
-    unordered_map<K, pair<V, typename list<K>::iterator>> cache;
+    unordered_map<K, V> cache;
+    unordered_map<K, typename list<K>::iterator> cache_aux;
 };
 
 #include "utils.tpp"

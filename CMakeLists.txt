@@ -32,6 +32,13 @@ add_executable(test_hash
         src/utils.cpp
         src/utils.tpp)
 
+add_executable(test_multithread
+        tests/test_multithread.cpp
+        src/circuit.cpp
+        src/quantum_manager.cpp
+        src/utils.cpp
+        src/utils.tpp)
+
 target_link_libraries(quantum_server_cpp Eigen3::Eigen)
 target_link_libraries(quantum_server_cpp Threads::Threads)
 target_link_libraries(test_circuit Eigen3::Eigen)
@@ -40,3 +47,5 @@ target_link_libraries(test_cache Eigen3::Eigen)
 target_link_libraries(test_cache Threads::Threads)
 target_link_libraries(test_hash Eigen3::Eigen)
 target_link_libraries(test_hash Threads::Threads)
+target_link_libraries(test_multithread Eigen3::Eigen)
+target_link_libraries(test_multithread Threads::Threads)

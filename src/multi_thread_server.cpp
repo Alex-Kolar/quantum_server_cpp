@@ -108,7 +108,7 @@ int start_server(const char *ip_chr, int portNo, int client_num, string formalis
         noThread++;
     }
     
-    for(int i = 0; i < 3; i++)
+    for(int i = 0; i < noThread; i++)
     {
         pthread_join(threadA[i], NULL);
     }

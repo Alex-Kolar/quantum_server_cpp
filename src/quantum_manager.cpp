@@ -35,6 +35,146 @@ LRUCache<key_type, apply_value_type> ctrlx_cache =
 LRUCache<key_type, apply_value_type> swap_cache =
         LRUCache<key_type, apply_value_type>(CACHE_SIZE);
 
+
+Eigen::VectorXcd apply_wrapper(const Eigen::VectorXcd& state, const string& gate, vector<u_int> indices) {
+    Eigen::VectorXcd output_state(state.rows());
+    key_type key = make_tuple(state, indices);
+
+    if (gate == "h") {
+        unique_lock<mutex> lock(h_cache.cache_mutex);
+
+        if (h_cache.allocated(key)) {
+            while (!h_cache.contains(key))
+                h_cache.cache_cv.wait(lock);
+            output_state = h_cache.get(key);
+            lock.unlock();
+
+        } else {
+            h_cache.allocate(key);
+            lock.unlock();
+            output_state = apply(state, gt.H, {indices[0]});
+            lock.lock();
+            h_cache.put(key, output_state);
+            h_cache.cache_cv.notify_all();
+            lock.unlock();
+        }
+
+    } else if (gate == "x") {
+        unique_lock<mutex> lock(x_cache.cache_mutex);
+
+        if (x_cache.allocated(key)) {
+            while (!x_cache.contains(key))
+                x_cache.cache_cv.wait(lock);
+            output_state = x_cache.get(key);
+            lock.unlock();
+
+        } else {
+            x_cache.allocate(key);
+            lock.unlock();
+            output_state = apply(state, gt.X, {indices[0]});
+            lock.lock();
+            x_cache.put(key, output_state);
+            x_cache.cache_cv.notify_all();
+            lock.unlock();
+        }
+
+    } else if (gate == "y") {
+        unique_lock<mutex> lock(y_cache.cache_mutex);
+
+        if (y_cache.allocated(key)) {
+            while (!y_cache.contains(key))
+                y_cache.cache_cv.wait(lock);
+            output_state = y_cache.get(key);
+            lock.unlock();
+
+        } else {
+            y_cache.allocate(key);
+            lock.unlock();
+            output_state = apply(state, gt.Y, {indices[0]});
+            lock.lock();
+            y_cache.put(key, output_state);
+            y_cache.cache_cv.notify_all();
+            lock.unlock();
+        }
+
+    } else if (gate == "z") {
+        unique_lock<mutex> lock(z_cache.cache_mutex);
+
+        if (z_cache.allocated(key)) {
+            while (!z_cache.contains(key))
+                z_cache.cache_cv.wait(lock);
+            output_state = z_cache.get(key);
+            lock.unlock();
+
+        } else {
+            z_cache.allocate(key);
+            lock.unlock();
+            output_state = apply(state, gt.Z, {indices[0]});
+            lock.lock();
+            z_cache.put(key, output_state);
+            z_cache.cache_cv.notify_all();
+            lock.unlock();
+        }
+
+    } else if (gate == "cx") {
+        unique_lock<mutex> lock(ctrlx_cache.cache_mutex);
+
+        if (ctrlx_cache.allocated(key)) {
+            while (!ctrlx_cache.contains(key))
+                ctrlx_cache.cache_cv.wait(lock);
+            output_state = ctrlx_cache.get(key);
+            lock.unlock();
+
+        } else {
+            ctrlx_cache.allocate(key);
+            lock.unlock();
+            output_state = applyCTRL(state, gt.X, {indices[0]}, {indices[1]});
+            lock.lock();
+            ctrlx_cache.put(key, output_state);
+            ctrlx_cache.cache_cv.notify_all();
+            lock.unlock();
+        }
+
+    } else if (gate == "swap") {
+        unique_lock<mutex> lock(swap_cache.cache_mutex);
+
+        if (swap_cache.allocated(key)) {
+            while (!swap_cache.contains(key))
+                swap_cache.cache_cv.wait(lock);
+            output_state = swap_cache.get(key);
+            lock.unlock();
+
+        } else {
+            swap_cache.allocate(key);
+            lock.unlock();
+            output_state = apply(state, gt.SWAP, {indices[0], indices[1]});
+            lock.lock();
+            swap_cache.put(key, output_state);
+            swap_cache.cache_cv.notify_all();
+            lock.unlock();
+        }
+
+    } else {
+        throw std::invalid_argument("undefined gate " + gate);
+    }
+
+    return output_state;
+}
+
+Eigen::VectorXcd vector_kron(Eigen::VectorXcd* first, Eigen::VectorXcd* second) {
+    long first_size = first->rows();
+    long second_size = second->rows();
+    long size = first_size * second_size;
+    Eigen::VectorXcd out(size);
+
+    for (int i = 0; i < size; i++) {
+        out(i) = (*first)(i / second_size) * (*second)(i % second_size);
+    }
+
+    return out;
+}
+
+
 map<string, int> QuantumManager::run_circuit(Circuit* circuit, vector<string> keys, float meas_samp){
     // prepare circuit
     auto prepared = prepare_state(&keys);
@@ -109,12 +249,23 @@ map<string, int> QuantumManager::measure_helper(const Eigen::VectorXcd& state,
 
     // check cache for result
     key_type key = make_tuple(state, indices);
-    if (measure_cache.contains(key)) {
+    unique_lock<mutex> lock(measure_cache.cache_mutex);
+
+    if (measure_cache.allocated(key)) {
+        // wait for value to be assigned if it isn't already
+        while (!measure_cache.contains(key))
+            measure_cache.cache_cv.wait(lock);
         measure_value_type value = measure_cache.get(key);
+        lock.unlock();
+
         probs = std::get<0>(value);
         resultant_states = std::get<1>(value);
 
     } else {
+        // allocate space in cache
+        measure_cache.allocate(key);
+        lock.unlock();
+
         // convert input indices to idx
         vector<idx> indices_idx(num_qubits_meas);
         for (int i = 0; i < num_qubits_meas; i++) {
@@ -127,10 +278,11 @@ map<string, int> QuantumManager::measure_helper(const Eigen::VectorXcd& state,
         resultant_states = std::get<ST>(meas_data);
 
         // store in cache
-//        value_ptr = new measure_value_type;
-//        *value_ptr = make_pair(probs, resultant_states);
         measure_value_type value = make_pair(probs, resultant_states);
+        lock.lock();
         measure_cache.put(key, value);
+        measure_cache.cache_cv.notify_all();
+        lock.unlock();
     }
 
     // determine measurement result using random sample
@@ -179,76 +331,4 @@ map<string, int> QuantumManager::measure_helper(const Eigen::VectorXcd& state,
         set(no_measure_keys, resultant_states[res]);
 
     return output;
-}
-
-Eigen::VectorXcd QuantumManager::apply_wrapper(const Eigen::VectorXcd& state, const string& gate, vector<u_int> indices) {
-    Eigen::VectorXcd output_state(state.rows());
-    key_type key = make_tuple(state, indices);
-
-    if (gate == "h") {
-        if (h_cache.contains(key))
-            output_state = h_cache.get(key);
-        else {
-            output_state = apply(state, gt.H, {indices[0]});
-            h_cache.put(key, output_state);
-        }
-
-    } else if (gate == "x") {
-        if (x_cache.contains(key))
-            output_state = x_cache.get(key);
-        else {
-            output_state = apply(state, gt.X, {indices[0]});
-            x_cache.put(key, output_state);
-        }
-
-    } else if (gate == "y") {
-        if (y_cache.contains(key))
-            output_state = y_cache.get(key);
-        else {
-            output_state = apply(state, gt.Y, {indices[0]});
-            y_cache.put(key, output_state);
-        }
-
-    } else if (gate == "z") {
-        if (z_cache.contains(key))
-            output_state = z_cache.get(key);
-        else {
-            output_state = apply(state, gt.Z, {indices[0]});
-            z_cache.put(key, output_state);
-        }
-
-    } else if (gate == "cx") {
-        if (ctrlx_cache.contains(key))
-            output_state = ctrlx_cache.get(key);
-        else {
-            output_state = applyCTRL(state, gt.X, {indices[0]}, {indices[1]});
-            ctrlx_cache.put(key, output_state);
-        }
-
-    } else if (gate == "swap") {
-        if (swap_cache.contains(key))
-            output_state = swap_cache.get(key);
-        else {
-            output_state = apply(state, gt.SWAP, {indices[0], indices[1]});
-            swap_cache.put(key, output_state);
-        }
-
-    } else {
-        throw std::invalid_argument("undefined gate " + gate);
-    }
-
-    return output_state;
-}
-
-Eigen::VectorXcd QuantumManager::vector_kron(Eigen::VectorXcd* first, Eigen::VectorXcd* second) {
-    long first_size = first->rows();
-    long second_size = second->rows();
-    long size = first_size * second_size;
-    Eigen::VectorXcd out(size);
-
-    for (int i = 0; i < size; i++) {
-        out(i) = (*first)(i / second_size) * (*second)(i % second_size);
-    }
-
-    return out;
 }

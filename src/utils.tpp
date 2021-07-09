@@ -69,54 +69,46 @@ namespace std {
 }
 
 template<typename K, typename V>
-void LRUCache<K, V>::put(K key, V value) {
-    unique_lock(this->cache_lock);
-
+void LRUCache<K, V>::allocate(K key) {
     // remove old keys if necessary
     if (key_list.size() == size) {
         K old_key = key_list.back();
-        V old_val = cache[old_key].first;
-
         cache.erase(old_key);
+        cache_aux.erase(old_key);
         key_list.pop_back();
-//        K old_key = key_list.back();
-//        auto it_cache = cache.find(old_key);
-//
-//        delete it_cache->second.first;
-//
-//        cache.erase(it_cache);
-//        key_list.pop_back();
     }
 
     // mark key as most recently accessed and insert into cache
     auto it = key_list.insert(key_list.begin(), key);
-    auto pair = make_pair(value, it);
-    cache[key] = pair;
+    cache_aux[key] = it;
 
-//    if (key_list.size() != cache.size()) {
-//        // uncomment this to test functionality of algorithm (work in progress)
-//        throw logic_error("mismatch in list of cache keys and cache map");
-//    }
+    if (key_list.size() != cache_aux.size()) {
+        // uncomment this to test functionality of algorithm (work in progress)
+        throw logic_error("mismatch in list of cache keys and cache map");
+    }
+}
+
+template<typename K, typename V>
+void LRUCache<K, V>::put(K key, V value) {
+    if (!allocated(key))
+        allocate(key);
+
+    cache[key] = value;
 }
 
 template<typename K, typename V>
 V LRUCache<K, V>::get(K key) {
-    unique_lock(this->cache_lock);
-
     auto it_cache = cache.find(key);
 
     // cache miss
     if (it_cache == cache.end())
-        throw invalid_argument("key not present in cache");
+        throw invalid_argument("key not assigned in cache");
 
     // cache hit
     // update key as most recently accessed
-    auto it_key = it_cache->second.second;
+    auto it_key = cache_aux[key];
     key_list.splice(key_list.begin(), key_list, it_key);
-//    key_list.erase(it_key);
-//    it_key = key_list.insert(key_list.begin(), key);
-//    it_cache->second.second = it_key;
 
     // return value
-    return it_cache->second.first;
+    return it_cache->second;
 }
